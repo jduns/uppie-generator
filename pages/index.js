@@ -16,9 +16,26 @@ export default function Home() {
   };
 
   const generateStory = async () => {
-    // Here you would call your API to generate the story
-    // For now, we'll just set a placeholder story
-    setGeneratedStory('Once upon a time, in a land far, far away...\n\nThere was a brave young hero who embarked on an exciting adventure...\n\nAlong the way, they met new friends and overcame challenging obstacles...\n\nIn the end, they learned valuable lessons about courage, friendship, and perseverance.\n\nThe End.');
+    try {
+      const response = await fetch('/api/generateStory', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(storyParams),
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+      const formattedStory = `${data.content}\n\nPictures: ${data.pictures.join(', ')}`;
+      setGeneratedStory(formattedStory);
+    } catch (error) {
+      console.error('Error generating story:', error);
+      setGeneratedStory('An error occurred while generating the story. Please try again.');
+    }
   };
 
   return (
