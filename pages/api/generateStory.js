@@ -4,6 +4,10 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const requestBody = {
       // Your request parameters here
+      age: req.body.age || 5, // Using the incoming request parameters
+      storyType: req.body.storyType || 'fantasy',
+      length: req.body.length || 10,
+      numPictures: req.body.numPictures || 2,
     };
 
     try {
@@ -11,7 +15,7 @@ export default async function handler(req, res) {
       console.log('API Key:', apiKey); // Log the API key for debugging
 
       // Check if API key is missing
-      if (!apiKey || apiKey === '0000000000') {
+      if (!apiKey) {
         console.error('Invalid API key. Please check your environment variables.');
         return res.status(500).json({ error: 'Invalid API key.' });
       }
