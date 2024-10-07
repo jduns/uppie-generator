@@ -2,6 +2,7 @@
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { age, storyType, length, numPictures } = req.body;
+    const apiKey = process.env.AI_HORDE_API_KEY;
 
     // Construct the request to AI Horde
     const requestBody = {
