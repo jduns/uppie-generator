@@ -2,7 +2,6 @@
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { age, storyType, length, numPictures } = req.body;
-    const apiKey = process.env.AI_HORDE_API_KEY;
 
     // Construct the request to AI Horde
     const requestBody = {
@@ -14,6 +13,7 @@ export default async function handler(req, res) {
 
     try {
       // Initiate the request to generate the story
+      const apiKey = process.env.AI_HORDE_API_KEY;
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: {
