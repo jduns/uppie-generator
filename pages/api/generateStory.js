@@ -2,7 +2,7 @@
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { age, storyType, length, numPictures } = req.body;
-    const apiKey = process.env.AI_HORDE_API_KEY; // Ensure this is set in your environment variables
+    const apiKey = process.env.AI_HORDE_API_KEY;
 
     // Construct the request to AI Horde
     const requestBody = {
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`, // Use the API key from your environment variable
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(requestBody),
       });
@@ -26,14 +26,15 @@ export default async function handler(req, res) {
       const data = await response.json();
 
       if (!response.ok) {
-        return res.status(response.status).json({ error: data.message });
+        console.error('API error:', data); // Log detailed error information from API response
+        return res.status(response.status).json({ error: data.message || 'An error occurred' });
       }
 
       // Return the job ID or any other relevant information
       res.status(200).json({ jobId: data.jobId });
     } catch (error) {
-      console.error('Error generating story:', error);
-      res.status(500).json({ error: 'Error generating story. Please try again later.' });
+      console.error('Error generating story:', error); // Log the actual error object
+      res.status(500).json({ error: error.message || 'Error generating story. Please try again later.' });
     }
   } else {
     res.setHeader('Allow', ['POST']);
