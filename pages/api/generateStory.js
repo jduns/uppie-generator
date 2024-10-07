@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
     try {
       // Initiate the request to generate the story
-      const response = await fetch('https://api.stablehorde.net/v2/generate/text/async', {
+      const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
