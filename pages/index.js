@@ -9,7 +9,7 @@ export default function Home() {
     numPictures: 3,
   });
   const [generatedStory, setGeneratedStory] = useState('');
-  const [loading, setLoading] = useState(false); // State to manage loading status
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -17,8 +17,8 @@ export default function Home() {
   };
 
   const generateStory = async () => {
-    setLoading(true); // Set loading to true when starting the generation
-    setGeneratedStory(''); // Clear previous story
+    setLoading(true);
+    setGeneratedStory('');
 
     try {
       const response = await fetch('/api/generateStory', {
@@ -44,7 +44,7 @@ export default function Home() {
       console.error('Error generating story:', error);
       setGeneratedStory('Sorry, there was an error generating your story. Please try again later.');
     } finally {
-      setLoading(false); // Set loading to false when done
+      setLoading(false);
     }
   };
 
@@ -54,7 +54,12 @@ export default function Home() {
     let story = '';
 
     while (!isDone) {
-      const response = await fetch(`https://api.aihorde.net/v2/generate/text/status?jobId=${jobId}`);
+      const response = await fetch(`https://api.aihorde.net/v2/generate/text/status?jobId=${jobId}`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.AI_HORDE_API_KEY}`, // Add your API key here
+        },
+      });
+
       const data = await response.json();
 
       if (data.status === 'done') {
