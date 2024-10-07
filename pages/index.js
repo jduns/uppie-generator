@@ -9,6 +9,7 @@ export default function Home() {
     numPictures: 3,
   });
   const [generatedStory, setGeneratedStory] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -16,13 +17,22 @@ export default function Home() {
   };
 
   const generateStory = async () => {
+    setLoading(true);
+    setGeneratedStory('');
+
     try {
-      const response = await fetch('/api/generateStory', {
+      const response = await fetch('https://ai-horde.com/api/v1/generate', { // Replace with your AI Horde API URL
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(storyParams),
+        'Authorization': `Bearer 0000000000`, // Replace YOUR_API_KEY with your actual API key
+      },
+        body: JSON.stringify({
+          age: storyParams.age,
+          storyType: storyParams.storyType,
+          length: storyParams.length,
+          numPictures: storyParams.numPictures,
+        }),
       });
 
       if (!response.ok) {
@@ -30,11 +40,12 @@ export default function Home() {
       }
 
       const data = await response.json();
-      const formattedStory = `${data.content}\n\nPictures: ${data.pictures.join(', ')}`;
-      setGeneratedStory(formattedStory);
+      setGeneratedStory(data.story); // Adjust this based on the actual response structure
     } catch (error) {
       console.error('Error generating story:', error);
-      setGeneratedStory('An error occurred while generating the story. Please try again.');
+      setGeneratedStory('There was an error generating your story. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,8 +112,8 @@ export default function Home() {
           </label>
         </div>
 
-        <button onClick={generateStory} className={styles.button}>
-          Generate Story
+        <button onClick={generateStory} className={styles.button} disabled={loading}>
+          {loading ? 'Generating...' : 'Generate Story'}
         </button>
       </div>
 
