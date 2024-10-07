@@ -2,25 +2,31 @@
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
+    // Extract parameters from the request body
+    const { age, storyType, length, numPictures } = req.body;
+
+    // Construct the request payload
     const requestBody = {
-      // Your request parameters here
-      age: req.body.age || 5, // Using the incoming request parameters
-      storyType: req.body.storyType || 'fantasy',
-      length: req.body.length || 10,
-      numPictures: req.body.numPictures || 2,
+      age,
+      storyType,
+      length,
+      numPictures,
     };
 
     try {
+      // Use your AI Horde API key from environment variables
       const apiKey = process.env.AI_HORDE_API_KEY; // Ensure you've set this up in your environment variables
-      console.log('API Key:', apiKey); // Log the API key for debugging
 
-      // Check if API key is missing
-      if (!apiKey) {
+      // Log the API key for debugging (remove in production)
+      console.log('API Key:', apiKey); 
+
+      // Check if API key is missing or invalid
+      if (!apiKey || apiKey === '0000000000') {
         console.error('Invalid API key. Please check your environment variables.');
-        return res.status(500).json({ error: 'Invalid API key.' });
+        return res.status(400).json({ error: 'Invalid API key.' });
       }
 
-      // Initiate the request to generate the story
+      // Initiate the request to generate the story using the Stable Horde API
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: {
