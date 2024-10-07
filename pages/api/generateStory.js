@@ -2,10 +2,10 @@
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    // Assuming you don't need to send those parameters to the API
-    // Remove the parameters from requestBody
+    // Create request body based on required parameters
     const requestBody = {
-      // Add only necessary parameters based on AI Horde documentation
+      // Example: Include required parameters as per AI Horde API documentation
+      // prompt: "Generate a story about a dragon" (if required)
     };
 
     console.log("Request Body:", JSON.stringify(requestBody, null, 2)); // Log the request body for verification
@@ -26,15 +26,16 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
         },
-        body: JSON.stringify(requestBody), // Send the modified requestBody
+        body: JSON.stringify(requestBody),
       });
 
+      // Read the response body only once
       const data = await response.json();
 
+      // Check if response is not ok and handle the error
       if (!response.ok) {
-        const errorDetails = await response.text(); // Get the error details
-        console.error('API error:', errorDetails); // Log detailed error information
-        return res.status(response.status).json({ error: errorDetails || 'An error occurred' });
+        console.error('API error:', data); // Log detailed error information
+        return res.status(response.status).json({ error: data.message || 'An error occurred' });
       }
 
       // If successful, return the job ID
