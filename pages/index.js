@@ -9,7 +9,7 @@ export default function Home() {
     numPictures: 3,
   });
   const [generatedStory, setGeneratedStory] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // State to manage loading status
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -17,36 +17,58 @@ export default function Home() {
   };
 
   const generateStory = async () => {
-    setLoading(true);
-    setGeneratedStory('');
+    setLoading(true); // Set loading to true when starting the generation
+    setGeneratedStory(''); // Clear previous story
 
     try {
-      const response = await fetch('https://ai-horde.com/api/v1/generate', { // Replace with your AI Horde API URL
+      const response = await fetch('/api/generateStory', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        'Authorization': `Bearer 0000000000`, // Replace YOUR_API_KEY with your actual API key
-      },
-        body: JSON.stringify({
-          age: storyParams.age,
-          storyType: storyParams.storyType,
-          length: storyParams.length,
-          numPictures: storyParams.numPictures,
-        }),
+        },
+        body: JSON.stringify(storyParams),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(data.error || 'Failed to generate story');
       }
 
-      const data = await response.json();
-      setGeneratedStory(data.story); // Adjust this based on the actual response structure
+      const { jobId } = data; // Get the job ID for the generated story
+
+      // Now check the status of the request
+      const statusResponse = await checkJobStatus(jobId);
+      setGeneratedStory(statusResponse.story); // Assuming the status response has the story
     } catch (error) {
       console.error('Error generating story:', error);
-      setGeneratedStory('There was an error generating your story. Please try again.');
+      setGeneratedStory('Sorry, there was an error generating your story. Please try again later.');
     } finally {
-      setLoading(false);
+      setLoading(false); // Set loading to false when done
     }
+  };
+
+  // Function to check the status of the job
+  const checkJobStatus = async (jobId) => {
+    let isDone = false;
+    let story = '';
+
+    while (!isDone) {
+      const response = await fetch(`https://api.aihorde.net/v2/generate/text/status?jobId=${jobId}`);
+      const data = await response.json();
+
+      if (data.status === 'done') {
+        isDone = true;
+        story = data.story; // Adjust this to match the actual response structure
+      } else if (data.status === 'error') {
+        throw new Error('Error generating story');
+      }
+
+      // Wait before checking again
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before rechecking
+    }
+
+    return { story };
   };
 
   return (
