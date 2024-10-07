@@ -2,21 +2,18 @@
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    // Create request body based on required parameters
     const requestBody = {
-      // Example: Include required parameters as per AI Horde API documentation
-      // prompt: "Generate a story about a dragon" (if required)
+      // Your request parameters here
     };
-
-    console.log("Request Body:", JSON.stringify(requestBody, null, 2)); // Log the request body for verification
 
     try {
       const apiKey = process.env.AI_HORDE_API_KEY; // Ensure you've set this up in your environment variables
-      
+      console.log('API Key:', apiKey); // Log the API key for debugging
+
       // Check if API key is missing
-      if (!apiKey) {
-        console.error('API key is missing. Please check your environment variables.');
-        return res.status(500).json({ error: 'API key is missing.' });
+      if (!apiKey || apiKey === '0000000000') {
+        console.error('Invalid API key. Please check your environment variables.');
+        return res.status(500).json({ error: 'Invalid API key.' });
       }
 
       // Initiate the request to generate the story
@@ -29,12 +26,10 @@ export default async function handler(req, res) {
         body: JSON.stringify(requestBody),
       });
 
-      // Read the response body only once
       const data = await response.json();
 
-      // Check if response is not ok and handle the error
       if (!response.ok) {
-        console.error('API error:', data); // Log detailed error information
+        console.error('API error:', data); // Log detailed error information from API response
         return res.status(response.status).json({ error: data.message || 'An error occurred' });
       }
 
