@@ -2,11 +2,10 @@
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { age, storyType, length, numPictures } = req.body;
-    const apiKey = process.env.AI_HORDE_API_KEY;
+    const apiKey = process.env.AI_HORDE_API_KEY; // Ensure this is set in your .env.local
 
     // Construct the request to AI Horde
     const requestBody = {
-      // Adjust the request body as needed for AI Horde
       age,
       storyType,
       length,
@@ -19,7 +18,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer YOUR_API_KEY_HERE`, // Replace with your actual API key
+          'Authorization': `Bearer ${apiKey}`, // Use the API key from environment variables
         },
         body: JSON.stringify(requestBody),
       });
@@ -27,11 +26,14 @@ export default async function handler(req, res) {
       const data = await response.json();
 
       if (!response.ok) {
-        return res.status(response.status).json({ error: data.message });
+        return res.status(response.status).json({ error: data.message || 'Failed to generate story' });
       }
 
-      // Return the job ID or any other relevant information
-      res.status(200).json({ jobId: data.jobId });
+      const jobId = data.jobId; // Get the job ID for the generated story
+
+      // Now check the status of the request
+      const storyResponse = await checkJobStatus(jobId, apiKey);
+      res.status(200).json({ story: storyResponse.story }); // Return the generated story
     } catch (error) {
       console.error('Error generating story:', error);
       res.status(500).json({ error: 'Error generating story. Please try again later.' });
@@ -41,3 +43,6 @@ export default async function handler(req, res) {
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
+
+// Function to check the status of the job
+const checkJobStatus = async (jobId, api
