@@ -1,9 +1,10 @@
 // pages/api/generateStory.js
+
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { age, storyType, length, numPictures } = req.body;
 
-    // Construct the request to AI Horde
+    // Construct the request payload
     const requestBody = {
       age,
       storyType,
@@ -12,8 +13,10 @@ export default async function handler(req, res) {
     };
 
     try {
+      // Use your AI Horde API key here
+      const apiKey = process.env.AI_HORDE_API_KEY; // Ensure you've set this up in your environment variables
+
       // Initiate the request to generate the story
-      const apiKey = process.env.AI_HORDE_API_KEY;
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: {
@@ -30,10 +33,10 @@ export default async function handler(req, res) {
         return res.status(response.status).json({ error: data.message || 'An error occurred' });
       }
 
-      // Return the job ID or any other relevant information
+      // If successful, return the job ID
       res.status(200).json({ jobId: data.jobId });
     } catch (error) {
-      console.error('Error generating story:', error); // Log the actual error object
+      console.error('Error generating story:', error);
       res.status(500).json({ error: error.message || 'Error generating story. Please try again later.' });
     }
   } else {
