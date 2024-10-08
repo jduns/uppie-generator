@@ -1,6 +1,6 @@
 {
   "name": "storybook-generator",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,9 +8,13 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "^13.4.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "@zeldafan0225/ai_horde": "^5.1.0"
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "@zeldafan0225/ai_horde": "^1.0.0" // Add the correct version here
+  },
+  "devDependencies": {
+    "eslint": "latest",
+    "eslint-config-next": "latest"
   }
 }
