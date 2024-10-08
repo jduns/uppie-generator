@@ -10,6 +10,7 @@
   "dependencies": {
     "next": "^13.4.0",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "@zeldafan0225/ai_horde": "^5.0.0" // Add this line
   }
 }
