@@ -12,6 +12,7 @@ export default function Home() {
     numPictures: 3,
   });
   const [generatedStory, setGeneratedStory] = useState('');
+  const [generatedImages, setGeneratedImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [workerInfo, setWorkerInfo] = useState('');
@@ -22,19 +23,16 @@ export default function Home() {
     setStoryParams(prev => ({ ...prev, [name]: value }));
   };
 
-  const generatePrompt = () => {
-    return `Please create a ${storyParams.storyType} story for a ${storyParams.age}-year-old that is ${storyParams.length} length and includes ${storyParams.numPictures} images.`;
-  };
-
   const generateStory = async () => {
     setIsLoading(true);
     setError('');
     setGeneratedStory('');
     setWorkerInfo('');
     setModelInfo('');
+    setGeneratedImages([]);
 
     try {
-      const prompt = generatePrompt();
+      const prompt = `Write a ${storyParams.length} ${storyParams.storyType} story for a ${storyParams.age}-year-old child. The story should have ${storyParams.numPictures} key scenes that could be illustrated.`;
       const response = await fetch('/api/generateStory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,6 +47,10 @@ export default function Home() {
       setGeneratedStory(data.story);
       setWorkerInfo(data.worker);
       setModelInfo(data.model);
+
+      // Generate images
+      const images = await generateImages(storyParams.numPictures, data.story);
+      setGeneratedImages(images);
     } catch (error) {
       console.error('Error generating story:', error);
       setError('Failed to generate story. Please try again.');
@@ -57,9 +59,33 @@ export default function Home() {
     }
   };
 
+  const generateImages = async (numImages, storyContent) => {
+    const images = [];
+    for (let i = 0; i < numImages; i++) {
+      try {
+        const response = await fetch('/api/generateImage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: `Image for children's story: ${storyContent}` })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          images.push(data.image);
+        } else {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('Error generating image:', error);
+        // Continue with the loop even if one image fails
+      }
+    }
+    return images;
+  };
+
   const generateMore = async () => {
     // Implementation for generating more content
     // This could involve calling the API with a "continue story" prompt
+    console.log("Generate more functionality not yet implemented");
   };
 
   const regenerate = () => {
@@ -129,16 +155,30 @@ export default function Home() {
         </Alert>
       )}
 
-      {isLoading && <p className="mt-4">Generating your story... This may take a minute.</p>}
+      {isLoading && <p className="mt-4">Generating your story and images... This may take a few minutes.</p>}
 
       {generatedStory && (
         <div className="mt-6">
           <h2 className="text-2xl font-bold mb-2">Generated Story:</h2>
-          <p className="mb-4">{generatedStory}</p>
+          <p className="mb-4 whitespace-pre-wrap">{generatedStory}</p>
           <p className="text-sm text-gray-600">Worker: {workerInfo}</p>
           <p className="text-sm text-gray-600 mb-4">Model: {modelInfo}</p>
-          <Button onClick={generateMore} className="mr-2">Generate More</Button>
-          <Button onClick={regenerate} variant="secondary">Regenerate</Button>
+          
+          {generatedImages.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-xl font-bold mb-2">Generated Images:</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {generatedImages.map((image, index) => (
+                  <img key={index} src={image} alt={`Story illustration ${index + 1}`} className="w-full h-auto" />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className="mt-4">
+            <Button onClick={generateMore} className="mr-2">Generate More</Button>
+            <Button onClick={regenerate} variant="secondary">Regenerate</Button>
+          </div>
         </div>
       )}
     </div>
