@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import styles from './index.module.css';
+import { AIHorde } from '@zeldafan0225/ai_horde';
+
+const aiHorde = new AIHorde();
 
 export default function Home() {
   const [storyParams, setStoryParams] = useState({
