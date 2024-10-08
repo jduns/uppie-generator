@@ -1,5 +1,3 @@
-// pages/index.js
-
 import { useState } from 'react';
 import styles from './index.module.css';
 
@@ -11,7 +9,8 @@ export default function Home() {
     numPictures: 3,
   });
   const [generatedStory, setGeneratedStory] = useState('');
-  const [loading, setLoading] = useState(false); // State to manage loading status
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -19,30 +18,47 @@ export default function Home() {
   };
 
   const generateStory = async () => {
-    setLoading(true); // Set loading to true when starting the generation
-    setGeneratedStory(''); // Clear previous story
+    setIsLoading(true);
+    setError('');
+    setGeneratedStory('');
 
     try {
-      const response = await fetch('/api/generateStory', {
+      // Initiate story generation
+      const initResponse = await fetch('/api/generateStory', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(storyParams),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(storyParams)
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate story');
+      if (!initResponse.ok) {
+        throw new Error(`HTTP error! status: ${initResponse.status}`);
       }
 
-      setGeneratedStory(data.story); // Assuming the response has the story
+      const { taskId } = await initResponse.json();
+
+      // Poll for story completion
+      while (true) {
+        const statusResponse = await fetch(`/api/checkStoryStatus?taskId=${taskId}`);
+
+        if (!statusResponse.ok) {
+          throw new Error(`HTTP error! status: ${statusResponse.status}`);
+        }
+
+        const statusData = await statusResponse.json();
+
+        if (statusData.done) {
+          setGeneratedStory(statusData.story);
+          break;
+        }
+
+        // Wait for 5 seconds before checking again
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
     } catch (error) {
       console.error('Error generating story:', error);
-      setGeneratedStory('Sorry, there was an error generating your story. Please try again later.');
+      setError('Failed to generate story. Please try again.');
     } finally {
-      setLoading(false); // Set loading to false when done
+      setIsLoading(false);
     }
   };
 
@@ -109,10 +125,14 @@ export default function Home() {
           </label>
         </div>
 
-        <button onClick={generateStory} className={styles.button} disabled={loading}>
-          {loading ? 'Generating...' : 'Generate Story'}
+        <button onClick={generateStory} className={styles.button} disabled={isLoading}>
+          {isLoading ? 'Generating...' : 'Generate Story'}
         </button>
       </div>
+
+      {error && <p className={styles.error}>{error}</p>}
+
+      {isLoading && <p className={styles.loading}>Generating your story... This may take a minute.</p>}
 
       {generatedStory && (
         <div className={styles.storyContainer}>
