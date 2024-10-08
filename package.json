@@ -11,7 +11,7 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "@zeldafan0225/ai_horde": "^1.0.0" // Add the correct version here
+    "@zeldafan0225/ai_horde": "^5.1.0"
   },
   "devDependencies": {
     "eslint": "latest",
