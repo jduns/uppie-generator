@@ -1,5 +1,8 @@
-import { useState } from 'react';
-import styles from './index.module.css';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function Home() {
   const [storyParams, setStoryParams] = useState({
@@ -11,49 +14,41 @@ export default function Home() {
   const [generatedStory, setGeneratedStory] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [workerInfo, setWorkerInfo] = useState('');
+  const [modelInfo, setModelInfo] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setStoryParams(prev => ({ ...prev, [name]: value }));
   };
 
+  const generatePrompt = () => {
+    return `Please create a ${storyParams.storyType} story for a ${storyParams.age}-year-old that is ${storyParams.length} length and includes ${storyParams.numPictures} images.`;
+  };
+
   const generateStory = async () => {
     setIsLoading(true);
     setError('');
     setGeneratedStory('');
+    setWorkerInfo('');
+    setModelInfo('');
 
     try {
-      // Initiate story generation
-      const initResponse = await fetch('/api/generateStory', {
+      const prompt = generatePrompt();
+      const response = await fetch('/api/generateStory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storyParams)
+        body: JSON.stringify({ prompt })
       });
 
-      if (!initResponse.ok) {
-        throw new Error(`HTTP error! status: ${initResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const { taskId } = await initResponse.json();
-
-      // Poll for story completion
-      while (true) {
-        const statusResponse = await fetch(`/api/checkStoryStatus?taskId=${taskId}`);
-
-        if (!statusResponse.ok) {
-          throw new Error(`HTTP error! status: ${statusResponse.status}`);
-        }
-
-        const statusData = await statusResponse.json();
-
-        if (statusData.done) {
-          setGeneratedStory(statusData.story);
-          break;
-        }
-
-        // Wait for 5 seconds before checking again
-        await new Promise(resolve => setTimeout(resolve, 5000));
-      }
+      const data = await response.json();
+      setGeneratedStory(data.story);
+      setWorkerInfo(data.worker);
+      setModelInfo(data.model);
     } catch (error) {
       console.error('Error generating story:', error);
       setError('Failed to generate story. Please try again.');
@@ -62,82 +57,88 @@ export default function Home() {
     }
   };
 
+  const generateMore = async () => {
+    // Implementation for generating more content
+    // This could involve calling the API with a "continue story" prompt
+  };
+
+  const regenerate = () => {
+    generateStory();
+  };
+
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Kids Storybook Generator</h1>
+    <div className="max-w-2xl mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6">Kids Storybook Generator</h1>
       
-      <div className={styles.form}>
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Age:
-            <input
-              type="number"
-              name="age"
-              value={storyParams.age}
-              onChange={handleInputChange}
-              className={styles.input}
-            />
-          </label>
+      <div className="space-y-4">
+        <div>
+          <label className="block mb-1">Age:</label>
+          <Input
+            type="number"
+            name="age"
+            value={storyParams.age}
+            onChange={handleInputChange}
+          />
         </div>
         
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Story Type:
-            <select
-              name="storyType"
-              value={storyParams.storyType}
-              onChange={handleInputChange}
-              className={styles.select}
-            >
-              <option value="adventure">Adventure</option>
-              <option value="fantasy">Fantasy</option>
-              <option value="educational">Educational</option>
-            </select>
-          </label>
+        <div>
+          <label className="block mb-1">Story Type:</label>
+          <Select
+            name="storyType"
+            value={storyParams.storyType}
+            onChange={handleInputChange}
+          >
+            <option value="adventure">Adventure</option>
+            <option value="fantasy">Fantasy</option>
+            <option value="educational">Educational</option>
+          </Select>
         </div>
         
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Length:
-            <select
-              name="length"
-              value={storyParams.length}
-              onChange={handleInputChange}
-              className={styles.select}
-            >
-              <option value="short">Short</option>
-              <option value="medium">Medium</option>
-              <option value="long">Long</option>
-            </select>
-          </label>
+        <div>
+          <label className="block mb-1">Length:</label>
+          <Select
+            name="length"
+            value={storyParams.length}
+            onChange={handleInputChange}
+          >
+            <option value="short">Short</option>
+            <option value="medium">Medium</option>
+            <option value="long">Long</option>
+          </Select>
         </div>
         
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Number of Pictures:
-            <input
-              type="number"
-              name="numPictures"
-              value={storyParams.numPictures}
-              onChange={handleInputChange}
-              className={styles.input}
-            />
-          </label>
+        <div>
+          <label className="block mb-1">Number of Pictures:</label>
+          <Input
+            type="number"
+            name="numPictures"
+            value={storyParams.numPictures}
+            onChange={handleInputChange}
+          />
         </div>
 
-        <button onClick={generateStory} className={styles.button} disabled={isLoading}>
+        <Button onClick={generateStory} disabled={isLoading}>
           {isLoading ? 'Generating...' : 'Generate Story'}
-        </button>
+        </Button>
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-      {isLoading && <p className={styles.loading}>Generating your story... This may take a minute.</p>}
+      {isLoading && <p className="mt-4">Generating your story... This may take a minute.</p>}
 
       {generatedStory && (
-        <div className={styles.storyContainer}>
-          <h2 className={styles.storyTitle}>Generated Story:</h2>
-          <p className={styles.storyContent}>{generatedStory}</p>
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold mb-2">Generated Story:</h2>
+          <p className="mb-4">{generatedStory}</p>
+          <p className="text-sm text-gray-600">Worker: {workerInfo}</p>
+          <p className="text-sm text-gray-600 mb-4">Model: {modelInfo}</p>
+          <Button onClick={generateMore} className="mr-2">Generate More</Button>
+          <Button onClick={regenerate} variant="secondary">Regenerate</Button>
         </div>
       )}
     </div>
