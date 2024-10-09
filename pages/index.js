@@ -33,6 +33,11 @@ const IndexPage = () => {
 
       const { taskId: storyTaskId } = await storyResponse.json();
 
+      // Validate taskId for story
+      if (!storyTaskId) {
+        throw new Error('Story Task ID is undefined');
+      }
+
       // Poll for story completion
       const pollStory = async () => {
         const storyStatusResponse = await fetch(`/api/checkStoryStatus?taskId=${storyTaskId}`);
@@ -61,6 +66,11 @@ const IndexPage = () => {
           }
 
           const { taskId: pictureTaskId } = await pictureResponse.json();
+
+          // Validate taskId for pictures
+          if (!pictureTaskId) {
+            throw new Error('Picture Task ID is undefined');
+          }
 
           // Poll for picture completion
           const pollPictures = async () => {
