@@ -2,32 +2,25 @@
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { length, storyType, age, numPictures } = req.body;
+    const { length, storyType, age, numPictures } = req.body; // Ensure you have the necessary parameters
 
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
 
       // Construct the prompt based on the input parameters
-      const prompt = `Write a ${length} ${storyType} story for a ${age}-year-old child. The story should have ${numPictures} key scenes that could be illustrated.`;
+      const prompt = Write a ${length} ${storyType} story for a ${age}-year-old child. The story should have ${numPictures} key scenes that could be illustrated.;
 
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt }) // Send the prompt as the body of the request
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(HTTP error! status: ${response.status});
       }
 
       const data = await response.json();
-      console.log('API Response:', data); // Log the full response for debugging
-
-      // Ensure the task_id is present in the response
-      if (!data.task_id) {
-        throw new Error('No task_id returned from the story generation API');
-      }
-
       res.status(200).json({ taskId: data.task_id }); // Return the task ID from the response
     } catch (error) {
       console.error('Error generating story:', error);
@@ -35,6 +28,6 @@ export default async function handler(req, res) {
     }
   } else {
     res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    res.status(405).end(Method ${req.method} Not Allowed);
   }
 }
