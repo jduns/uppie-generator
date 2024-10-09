@@ -1,62 +1,95 @@
 import { useState } from 'react';
 import styles from './index.module.css';
 
-export default function Home() {
+const IndexPage = () => {
   const [storyParams, setStoryParams] = useState({
     age: 5,
-    storyType: 'adventure',
-    length: 'medium',
+    storyType: 'fantasy',
+    length: 'short',
     numPictures: 3,
   });
   const [generatedStory, setGeneratedStory] = useState('');
+  const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setStoryParams(prev => ({ ...prev, [name]: value }));
-  };
-
-  const generateStory = async () => {
+  const generateContent = async () => {
     setIsLoading(true);
     setError('');
     setGeneratedStory('');
+    setImages([]); // Reset images
 
     try {
       // Initiate story generation
-      const initResponse = await fetch('/api/generateStory', {
+      const storyResponse = await fetch('/api/generateStory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storyParams)
+        body: JSON.stringify(storyParams),
       });
 
-      if (!initResponse.ok) {
-        throw new Error(`HTTP error! status: ${initResponse.status}`);
+      if (!storyResponse.ok) {
+        throw new Error(`HTTP error! status: ${storyResponse.status}`);
       }
 
-      const { taskId } = await initResponse.json();
+      const { taskId: storyTaskId } = await storyResponse.json();
 
       // Poll for story completion
-      while (true) {
-        const statusResponse = await fetch(`/api/checkStoryStatus?taskId=${taskId}`);
+      const pollStory = async () => {
+        const storyStatusResponse = await fetch(`/api/checkStoryStatus?taskId=${storyTaskId}`);
 
-        if (!statusResponse.ok) {
-          throw new Error(`HTTP error! status: ${statusResponse.status}`);
+        if (!storyStatusResponse.ok) {
+          throw new Error('Error checking story status');
         }
 
-        const statusData = await statusResponse.json();
+        const storyData = await storyStatusResponse.json();
 
-        if (statusData.done) {
-          setGeneratedStory(statusData.story);
-          break;
+        if (storyData.done) {
+          setGeneratedStory(storyData.story);
+        } else {
+          setTimeout(pollStory, 5000);
         }
+      };
 
-        // Wait for 5 seconds before checking again
-        await new Promise(resolve => setTimeout(resolve, 5000));
+      pollStory(); // Start polling for story
+
+      // Initiate picture generation
+      const pictureResponse = await fetch('/api/generatePictures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storyType: storyParams.storyType,
+          numPictures: storyParams.numPictures,
+        }),
+      });
+
+      if (!pictureResponse.ok) {
+        throw new Error(`HTTP error! status: ${pictureResponse.status}`);
       }
+
+      const { taskId: pictureTaskId } = await pictureResponse.json();
+
+      // Poll for picture completion
+      const pollPictures = async () => {
+        const pictureStatusResponse = await fetch(`/api/checkPictureStatus?taskId=${pictureTaskId}`);
+
+        if (!pictureStatusResponse.ok) {
+          throw new Error('Error checking picture status');
+        }
+
+        const pictureData = await pictureStatusResponse.json();
+
+        if (pictureData.done) {
+          setImages(pictureData.images);
+        } else {
+          setTimeout(pollPictures, 5000);
+        }
+      };
+
+      pollPictures(); // Start polling for pictures
+
     } catch (error) {
-      console.error('Error generating story:', error);
-      setError('Failed to generate story. Please try again.');
+      console.error('Error generating content:', error);
+      setError('Failed to generate content. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -64,82 +97,84 @@ export default function Home() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Kids Storybook Generator</h1>
-      
-      <div className={styles.form}>
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Age:
-            <input
-              type="number"
-              name="age"
-              value={storyParams.age}
-              onChange={handleInputChange}
-              className={styles.input}
-            />
-          </label>
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Story Type:
-            <select
-              name="storyType"
-              value={storyParams.storyType}
-              onChange={handleInputChange}
-              className={styles.select}
-            >
-              <option value="adventure">Adventure</option>
-              <option value="fantasy">Fantasy</option>
-              <option value="educational">Educational</option>
-            </select>
-          </label>
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Length:
-            <select
-              name="length"
-              value={storyParams.length}
-              onChange={handleInputChange}
-              className={styles.select}
-            >
-              <option value="short">Short</option>
-              <option value="medium">Medium</option>
-              <option value="long">Long</option>
-            </select>
-          </label>
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Number of Pictures:
-            <input
-              type="number"
-              name="numPictures"
-              value={storyParams.numPictures}
-              onChange={handleInputChange}
-              className={styles.input}
-            />
-          </label>
-        </div>
+      <h1>Story and Image Generator</h1>
 
-        <button onClick={generateStory} className={styles.button} disabled={isLoading}>
-          {isLoading ? 'Generating...' : 'Generate Story'}
+      {/* Form to set parameters */}
+      <div className={styles.form}>
+        <label>
+          Age:
+          <input
+            type="number"
+            value={storyParams.age}
+            onChange={(e) => setStoryParams({ ...storyParams, age: parseInt(e.target.value) })}
+          />
+        </label>
+        <label>
+          Story Type:
+          <input
+            type="text"
+            value={storyParams.storyType}
+            onChange={(e) => setStoryParams({ ...storyParams, storyType: e.target.value })}
+          />
+        </label>
+        <label>
+          Length:
+          <input
+            type="text"
+            value={storyParams.length}
+            onChange={(e) => setStoryParams({ ...storyParams, length: e.target.value })}
+          />
+        </label>
+        <label>
+          Number of Pictures:
+          <input
+            type="number"
+            value={storyParams.numPictures}
+            onChange={(e) => setStoryParams({ ...storyParams, numPictures: parseInt(e.target.value) })}
+          />
+        </label>
+        <button onClick={generateContent} disabled={isLoading}>
+          {isLoading ? 'Generating...' : 'Generate Story and Images'}
         </button>
       </div>
 
       {error && <p className={styles.error}>{error}</p>}
 
-      {isLoading && <p className={styles.loading}>Generating your story... This may take a minute.</p>}
-
+      {/* Render generated story */}
       {generatedStory && (
-        <div className={styles.storyContainer}>
-          <h2 className={styles.storyTitle}>Generated Story:</h2>
-          <p className={styles.storyContent}>{generatedStory}</p>
+        <div className={styles.storyTable}>
+          <h2>Generated Story</h2>
+          <table className={styles.table}>
+            <tbody>
+              <tr>
+                <td className={styles.storyCell}>
+                  <p>{generatedStory}</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Render images */}
+      {images.length > 0 && (
+        <div className={styles.imageTable}>
+          <h2>Illustrations</h2>
+          <table className={styles.table}>
+            <tbody>
+              <tr>
+                {images.map((img, index) => (
+                  <td key={index} className={styles.imageCell}>
+                    <img src={img} alt={`Illustration ${index + 1}`} className={styles.image} />
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default IndexPage;
