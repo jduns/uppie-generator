@@ -8,7 +8,7 @@ export default async function handler(req, res) {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
 
       // Construct the prompt based on the input parameters
-      const prompt = `Write a ${length} ${storyType} story for a ${age}-year-old child. The story should have ${numPictures} key scenes that could be illustrated.`; // Use backticks for template literals
+      const prompt = `Write a ${length} ${storyType} story for a ${age}-year-old child. The story should have ${numPictures} key scenes that could be illustrated.`;
 
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
@@ -16,11 +16,15 @@ export default async function handler(req, res) {
         body: JSON.stringify({ prompt }) // Send the prompt as the body of the request
       });
 
+      // Log the raw response for debugging
+      const rawData = await response.json();
+      console.log('Raw API response:', rawData); // Add this line to see the full response
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`); // Use backticks for template literals
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = rawData; // Use the logged rawData
       res.status(200).json({ taskId: data.task_id }); // Return the task ID from the response
     } catch (error) {
       console.error('Error generating story:', error);
@@ -28,6 +32,6 @@ export default async function handler(req, res) {
     }
   } else {
     res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`); // Use backticks for template literals
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
