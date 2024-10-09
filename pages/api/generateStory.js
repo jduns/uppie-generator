@@ -2,7 +2,7 @@
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { length, storyType, age, numPictures } = req.body; // Ensure you have the necessary parameters
+    const { length, storyType, age, numPictures } = req.body;
 
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }) // Send the prompt as the body of the request
+        body: JSON.stringify({ prompt })
       });
 
       if (!response.ok) {
@@ -21,6 +21,13 @@ export default async function handler(req, res) {
       }
 
       const data = await response.json();
+      console.log('API Response:', data); // Log the full response for debugging
+
+      // Ensure the task_id is present in the response
+      if (!data.task_id) {
+        throw new Error('No task_id returned from the story generation API');
+      }
+
       res.status(200).json({ taskId: data.task_id }); // Return the task ID from the response
     } catch (error) {
       console.error('Error generating story:', error);
