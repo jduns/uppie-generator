@@ -23,12 +23,15 @@ export default async function handler(req, res) {
                 return res.status(generateResponse.status).json({ error: generateData.error || 'Unknown error occurred' });
             }
 
-            if (!generateData.task_id) {  // Changed from 'request' to 'task_id'
+            if (!generateData.task_id) {
                 console.error('Task ID is undefined in response:', generateData);
                 return res.status(400).json({ error: 'Task ID is undefined.' });
             }
 
-            res.status(200).json({ taskId: generateData.task_id });
+            const taskId = generateData.task_id;
+            // Call the status check function here
+            const statusData = await checkImageGenerationStatus(taskId);
+            res.status(200).json({ taskId, status: statusData });
             
         } catch (error) {
             console.error('Error generating pictures:', error);
@@ -38,4 +41,23 @@ export default async function handler(req, res) {
         res.setHeader('Allow', ['POST']);
         res.status(405).end(`Method ${req.method} Not Allowed`);
     }
+}
+
+// Function to check the status of the image generation
+async function checkImageGenerationStatus(taskId) {
+    const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
+
+    const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${taskId}`, {
+        method: 'GET',
+        headers: { 'apikey': apiKey },
+    });
+
+    const statusData = await statusResponse.json();
+
+    if (!statusResponse.ok) {
+        console.error(`Error checking generation status: ${statusResponse.status}`, statusData);
+        throw new Error(statusData.error || 'Unknown error occurred while checking status');
+    }
+
+    return statusData;
 }
