@@ -45,47 +45,47 @@ const IndexPage = () => {
 
         if (storyData.done) {
           setGeneratedStory(storyData.story);
+
+          // Now that the story is generated, initiate picture generation
+          const pictureResponse = await fetch('/api/generatePictures', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: storyData.story, // Use the generated story as a prompt
+              numPictures: storyParams.numPictures,
+            }),
+          });
+
+          if (!pictureResponse.ok) {
+            throw new Error(`HTTP error! status: ${pictureResponse.status}`);
+          }
+
+          const { taskId: pictureTaskId } = await pictureResponse.json();
+
+          // Poll for picture completion
+          const pollPictures = async () => {
+            const pictureStatusResponse = await fetch(`/api/checkPictureStatus?taskId=${pictureTaskId}`);
+
+            if (!pictureStatusResponse.ok) {
+              throw new Error('Error checking picture status');
+            }
+
+            const pictureData = await pictureStatusResponse.json();
+
+            if (pictureData.done) {
+              setImages(pictureData.images);
+            } else {
+              setTimeout(pollPictures, 5000);
+            }
+          };
+
+          pollPictures(); // Start polling for pictures
         } else {
           setTimeout(pollStory, 5000);
         }
       };
 
       pollStory(); // Start polling for story
-
-      // Initiate picture generation
-      const pictureResponse = await fetch('/api/generatePictures', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          storyType: storyParams.storyType,
-          numPictures: storyParams.numPictures,
-        }),
-      });
-
-      if (!pictureResponse.ok) {
-        throw new Error(`HTTP error! status: ${pictureResponse.status}`);
-      }
-
-      const { taskId: pictureTaskId } = await pictureResponse.json();
-
-      // Poll for picture completion
-      const pollPictures = async () => {
-        const pictureStatusResponse = await fetch(`/api/checkPictureStatus?taskId=${pictureTaskId}`);
-
-        if (!pictureStatusResponse.ok) {
-          throw new Error('Error checking picture status');
-        }
-
-        const pictureData = await pictureStatusResponse.json();
-
-        if (pictureData.done) {
-          setImages(pictureData.images);
-        } else {
-          setTimeout(pollPictures, 5000);
-        }
-      };
-
-      pollPictures(); // Start polling for pictures
 
     } catch (error) {
       console.error('Error generating content:', error);
