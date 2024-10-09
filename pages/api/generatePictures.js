@@ -2,34 +2,23 @@
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { prompt, numPictures } = req.body; // Get prompt and number of pictures from the request body
+    const { prompt, numPictures } = req.body;
 
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
 
-      // Construct the request body according to the API's requirements
-      const requestBody = {
-        prompt: prompt,
-        n: numPictures, // Make sure this aligns with the API's expected parameter
-        // You may need to include other parameters based on the API documentation
-      };
-
-      const response = await fetch('https://stablehorde.net/api/v2/generate/picture/async', {
+      const response = await fetch('https://your.image.api/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': apiKey,
-        },
-        body: JSON.stringify(requestBody),
+        headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, numPictures }),
       });
 
       if (!response.ok) {
-        const errorDetails = await response.json(); // Capture error details
-        throw new Error(`HTTP error! Status: ${response.status}, Details: ${JSON.stringify(errorDetails)}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      res.status(200).json(data); // Respond with the API data
+      res.status(200).json({ images: data.images });
     } catch (error) {
       console.error('Error generating pictures:', error);
       res.status(500).json({ error: error.message || 'Error generating pictures. Please try again later.' });
