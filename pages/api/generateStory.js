@@ -16,16 +16,13 @@ export default async function handler(req, res) {
         body: JSON.stringify({ prompt }) // Send the prompt as the body of the request
       });
 
-      // Log the raw response for debugging
-      const rawData = await response.json();
-      console.log('Raw API response:', rawData); // Add this line to see the full response
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = rawData; // Use the logged rawData
-      res.status(200).json({ taskId: data.task_id }); // Return the task ID from the response
+      const data = await response.json();
+      console.log('Raw API response:', data); // Log the raw response for debugging
+      res.status(200).json({ taskId: data.id }); // Use data.id instead of data.task_id
     } catch (error) {
       console.error('Error generating story:', error);
       res.status(500).json({ error: error.message || 'Error generating story. Please try again later.' });
