@@ -28,7 +28,8 @@ const IndexPage = () => {
       });
 
       if (!storyResponse.ok) {
-        throw new Error(`HTTP error! status: ${storyResponse.status}`);
+        const errorData = await storyResponse.text();
+        throw new Error(`Error generating story: ${errorData}`);
       }
 
       const { taskId: storyTaskId } = await storyResponse.json();
@@ -38,14 +39,17 @@ const IndexPage = () => {
         throw new Error('Story Task ID is undefined');
       }
 
+      console.log('Story Task ID:', storyTaskId); // Log story task ID
+
       // Poll for story completion
       const pollStory = async () => {
         const storyStatusResponse = await fetch(`/api/checkStoryStatus?taskId=${storyTaskId}`, {
-          method: 'GET', // Change to GET request
+          method: 'GET',
         });
 
         if (!storyStatusResponse.ok) {
-          throw new Error('Error checking story status');
+          const errorData = await storyStatusResponse.text();
+          throw new Error(`Error checking story status: ${errorData}`);
         }
 
         const storyData = await storyStatusResponse.json();
@@ -64,7 +68,8 @@ const IndexPage = () => {
           });
 
           if (!pictureResponse.ok) {
-            throw new Error(`HTTP error! status: ${pictureResponse.status}`);
+            const errorData = await pictureResponse.text();
+            throw new Error(`Error generating pictures: ${errorData}`);
           }
 
           const { taskId: pictureTaskId } = await pictureResponse.json();
@@ -73,6 +78,8 @@ const IndexPage = () => {
           if (!pictureTaskId) {
             throw new Error('Picture Task ID is undefined');
           }
+
+          console.log('Picture Task ID:', pictureTaskId); // Log picture task ID
 
           // Poll for picture completion
           const pollPictures = async () => {
@@ -85,7 +92,8 @@ const IndexPage = () => {
             });
 
             if (!pictureStatusResponse.ok) {
-              throw new Error('Error checking picture status');
+              const errorData = await pictureStatusResponse.text();
+              throw new Error(`Error checking picture status: ${errorData}`);
             }
 
             const pictureData = await pictureStatusResponse.json();
