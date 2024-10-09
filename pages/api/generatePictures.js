@@ -1,5 +1,3 @@
-// pages/api/generatePictures.js
-
 export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { prompt, numPictures, webhookUrl } = req.body;
@@ -25,8 +23,8 @@ export default async function handler(req, res) {
                 return res.status(generateResponse.status).json({ error: generateData.error || 'Unknown error occurred' });
             }
 
-            if (!generateData.request) {
-                console.error('Request ID is undefined in response:', generateData);
+            if (!generateData.task_id) {  // Changed from 'request' to 'task_id'
+                console.error('Task ID is undefined in response:', generateData);
                 return res.status(400).json({ error: 'Task ID is undefined.' });
             }
 
