@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
       
-      const response = await fetch('https://your.image.api/endpoint', {
+      const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
