@@ -1,33 +1,33 @@
 // pages/api/checkPictureStatus.js
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    const { taskId } = req.query;
+  if (req.method === 'POST') {
+    const { taskId } = req.body; // The task ID to check
 
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
 
-      const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/image/status/${taskId}`, {
-        headers: { 'apikey': apiKey }
+      // Step 1: Check the status of the picture generation request
+      const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check`, {
+        method: 'POST',
+        headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId }), // Send the task ID
       });
 
       if (!statusResponse.ok) {
-        throw new Error(`HTTP error! status: ${statusResponse.status}`);
+        const errorData = await statusResponse.text();
+        console.error(`Error checking picture status: ${statusResponse.status}, ${errorData}`);
+        return res.status(statusResponse.status).json({ error: errorData });
       }
 
       const statusData = await statusResponse.json();
-
-      if (statusData.done) {
-        res.status(200).json({ done: true, images: statusData.generations.map(gen => gen.url) });
-      } else {
-        res.status(202).json({ done: false });
-      }
+      res.status(200).json(statusData); // Return the status data
     } catch (error) {
       console.error('Error checking picture status:', error);
       res.status(500).json({ error: error.message || 'Error checking picture status. Please try again later.' });
     }
   } else {
-    res.setHeader('Allow', ['GET']);
+    res.setHeader('Allow', ['POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
