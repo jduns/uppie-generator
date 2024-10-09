@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       return res.status(generateResponse.status).json({ error: errorData });
     }
 
-    const { task_id } = await generateResponse.json();
+    const { id: taskId } = await generateResponse.json(); // Use 'id' to get the task ID
 
     // Step 2: Check the status of the request
     let statusResponse;
@@ -27,11 +27,12 @@ export default async function handler(req, res) {
 
     while (!isComplete) {
       // Wait for a short time before checking the status again
-      await new Promise(resolve => setTimeout(resolve, 2000)); // wait 2 seconds
+      await new Promise(resolve => setTimeout(resolve, 1000)); // wait 1 second (as per the API's suggestion)
       
-      statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check?task_id=${task_id}`, {
-        method: 'GET',
-        headers: { 'apikey': apiKey },
+      statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check`, {
+        method: 'POST', // POST method to check status
+        headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: taskId }), // Correctly send the task_id in the body
       });
 
       if (!statusResponse.ok) {
@@ -45,9 +46,10 @@ export default async function handler(req, res) {
     }
 
     // Step 3: Retrieve the results
-    const resultsResponse = await fetch(`https://stablehorde.net/api/v2/generate/status?task_id=${task_id}`, {
-      method: 'GET',
-      headers: { 'apikey': apiKey },
+    const resultsResponse = await fetch(`https://stablehorde.net/api/v2/generate/status`, {
+      method: 'POST', // POST method to retrieve results
+      headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_id: taskId }), // Correctly send the task_id in the body
     });
 
     if (!resultsResponse.ok) {
@@ -57,7 +59,7 @@ export default async function handler(req, res) {
     }
 
     const results = await resultsResponse.json();
-    res.status(200).json(results);
+    res.status(200).json(results.generations); // Return the 'generations' key for image URLs
     
   } catch (error) {
     console.error('Error generating pictures:', error);
