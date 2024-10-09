@@ -10,6 +10,7 @@ export default async function handler(req, res) {
       // Construct the prompt based on the input parameters
       const prompt = `Write a ${length} ${storyType} story for a ${age}-year-old child. The story should have ${numPictures} key scenes that could be illustrated.`;
 
+      // Step 1: Initiate the text generation request
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
 
       const data = await response.json();
       console.log('Raw API response:', data); // Log the raw response for debugging
-      res.status(200).json({ taskId: data.id }); // Use data.id instead of data.task_id
+      res.status(200).json({ taskId: data.id }); // Return the task ID
     } catch (error) {
       console.error('Error generating story:', error);
       res.status(500).json({ error: error.message || 'Error generating story. Please try again later.' });
