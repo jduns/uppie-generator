@@ -1,8 +1,8 @@
-// pages/api/generatePictures.js
+// pages/api/generateStory.js
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { prompt, numPictures } = req.body; // Get prompt and number of pictures from the request body
+    const { prompt } = req.body; // Get prompt from the request body
 
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
@@ -10,7 +10,6 @@ export default async function handler(req, res) {
       // Construct the request body according to the API's requirements
       const requestBody = {
         prompt: prompt,
-        n: numPictures, // Make sure this aligns with the API's expected parameter
         // You may need to include other parameters based on the API documentation
       };
 
@@ -31,8 +30,8 @@ export default async function handler(req, res) {
       const data = await response.json();
       res.status(200).json(data); // Respond with the API data
     } catch (error) {
-      console.error('Error generating pictures:', error);
-      res.status(500).json({ error: error.message || 'Error generating pictures. Please try again later.' });
+      console.error('Error generating story:', error);
+      res.status(500).json({ error: error.message || 'Error generating story. Please try again later.' });
     }
   } else {
     res.setHeader('Allow', ['POST']);
