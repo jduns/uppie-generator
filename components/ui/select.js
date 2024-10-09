@@ -27,4 +27,12 @@ const StoryTypeSelect = ({ storyParams, handleInputChange }) => {
   );
 };
 
+// Optionally, you can add PropTypes if using JavaScript
+// StoryTypeSelect.propTypes = {
+//   storyParams: PropTypes.shape({
+//     storyType: PropTypes.string.isRequired,
+//   }).isRequired,
+//   handleInputChange: PropTypes.func.isRequired,
+// };
+
 export default StoryTypeSelect;
