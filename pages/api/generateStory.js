@@ -2,32 +2,39 @@
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { length, storyType, age, numPictures } = req.body; // Ensure you have the necessary parameters
+    const { age, storyType, length } = req.body;
 
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
-
-      // Construct the prompt based on the input parameters
-      const prompt = Write a ${length} ${storyType} story for a ${age}-year-old child. The story should have ${numPictures} key scenes that could be illustrated.;
-
-      const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
+      
+      // Replace this with your actual API call
+      const response = await fetch('https://stablehorde.net/api/v2/generate/text', {
         method: 'POST',
-        headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }) // Send the prompt as the body of the request
+        headers: { 
+          'Content-Type': 'application/json',
+          'apikey': apiKey 
+        },
+        body: JSON.stringify({ age, storyType, length })
       });
 
       if (!response.ok) {
-        throw new Error(HTTP error! status: ${response.status});
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      res.status(200).json({ taskId: data.task_id }); // Return the task ID from the response
+
+      // Ensure that the API response contains a taskId
+      if (!data.taskId) {
+        throw new Error('No taskId returned from the story generation API');
+      }
+
+      res.status(200).json({ taskId: data.taskId }); // Return the taskId
     } catch (error) {
       console.error('Error generating story:', error);
-      res.status(500).json({ error: error.message || 'Error generating story. Please try again later.' });
+      res.status(500).json({ error: error.message || 'Error generating story' });
     }
   } else {
     res.setHeader('Allow', ['POST']);
-    res.status(405).end(Method ${req.method} Not Allowed);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
