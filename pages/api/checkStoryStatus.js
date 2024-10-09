@@ -2,12 +2,12 @@
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { taskId } = req.body; // The task ID to check
+    const { taskId } = req.body; // Get taskId from request body
 
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
 
-      // Step 1: Check the status of the story generation request
+      // Step 1: Check the status of the request
       const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/text/status`, {
         method: 'POST',
         headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
