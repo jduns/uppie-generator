@@ -7,7 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select"; // Adjust the path if necessary
+} from "../ui/select"; // Adjust the path if necessary
 
 const StoryTypeSelect = ({ storyParams, handleInputChange }) => {
   return (
