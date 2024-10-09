@@ -2,28 +2,18 @@
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { storyType, numPictures } = req.body;
+    const { prompt } = req.body;
 
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
-
-      // Construct the prompt based on the story type and number of pictures
-      const prompt = `Create ${numPictures} illustrations for a ${storyType} story. The illustrations should depict key scenes that could be illustrated from the story.`;
-
-      const response = await fetch('https://stablehorde.net/api/v2/generate/image/async', {
+      
+      const response = await fetch('https://your.image.api/endpoint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': apiKey
         },
-        body: JSON.stringify({
-          prompt: prompt,
-          params: {
-            n: numPictures, // number of images to generate
-            size: '512x512', // specify image size if needed
-            // Add any other relevant parameters for your image generation
-          }
-        })
+        body: JSON.stringify({ prompt })
       });
 
       if (!response.ok) {
@@ -31,13 +21,13 @@ export default async function handler(req, res) {
       }
 
       const data = await response.json();
-
-      // Return the task ID immediately
-      res.status(202).json({ taskId: data.id });
+      res.status(200).json(data); // Return the generated pictures or relevant data
     } catch (error) {
-      console.error('Error initiating picture generation:', error);
-      res.status(500).json({ error: error.message || 'Error initiating picture generation. Please try again later.' });
+      console.error('Error generating pictures:', error);
+      res.status(500).json({ error: error.message || 'Error generating pictures.' });
     }
   } else {
     res.setHeader('Allow', ['POST']);
-    res.sta
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+}
