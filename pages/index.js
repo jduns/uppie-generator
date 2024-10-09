@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Button } from "uppie-generator/components/ui/button";
+import { Input } from "uppie-generator/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "uppie-generator/components/ui/select";
+import { Alert, AlertTitle, AlertDescription } from "uppie-generator/components/ui/alert";
 
 export default function Home() {
   const [storyParams, setStoryParams] = useState({
