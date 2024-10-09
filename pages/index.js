@@ -1,3 +1,5 @@
+// uppie-generator/pages/index.js
+
 import React, { useState } from 'react';
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -76,15 +78,12 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Error generating image:', error);
-        // Continue with the loop even if one image fails
       }
     }
     return images;
   };
 
   const generateMore = async () => {
-    // Implementation for generating more content
-    // This could involve calling the API with a "continue story" prompt
     console.log("Generate more functionality not yet implemented");
   };
 
@@ -112,11 +111,15 @@ export default function Home() {
           <Select
             name="storyType"
             value={storyParams.storyType}
-            onChange={handleInputChange}
-          >
-            <option value="adventure">Adventure</option>
-            <option value="fantasy">Fantasy</option>
-            <option value="educational">Educational</option>
+            onValueChange={(value) => handleInputChange({ target: { name: 'storyType', value } })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select story type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="adventure">Adventure</SelectItem>
+              <SelectItem value="fantasy">Fantasy</SelectItem>
+              <SelectItem value="educational">Educational</SelectItem>
+            </SelectContent>
           </Select>
         </div>
         
@@ -125,11 +128,15 @@ export default function Home() {
           <Select
             name="length"
             value={storyParams.length}
-            onChange={handleInputChange}
-          >
-            <option value="short">Short</option>
-            <option value="medium">Medium</option>
-            <option value="long">Long</option>
+            onValueChange={(value) => handleInputChange({ target: { name: 'length', value } })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select length" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="short">Short</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="long">Long</SelectItem>
+            </SelectContent>
           </Select>
         </div>
         
