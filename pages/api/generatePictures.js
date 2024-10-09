@@ -23,8 +23,8 @@ export default async function handler(req, res) {
             }
 
             // Check if task ID is available
-            if (!generateData.task_id) {
-                console.error('Task ID is undefined in response:', generateData);
+            if (!generateData.request) {
+                console.error('Request ID is undefined in response:', generateData);
                 return res.status(400).json({ error: 'Task ID is undefined.' });
             }
 
