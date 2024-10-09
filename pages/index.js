@@ -33,15 +33,12 @@ const IndexPage = () => {
       }
 
       const { taskId: storyTaskId } = await storyResponse.json();
-
-      // Validate taskId for story
       if (!storyTaskId) {
         throw new Error('Story Task ID is undefined');
       }
 
       console.log('Story Task ID:', storyTaskId); // Log story task ID
 
-      // Poll for story completion
       const pollStory = async () => {
         const storyStatusResponse = await fetch(`/api/checkStoryStatus?taskId=${storyTaskId}`, {
           method: 'GET',
@@ -55,64 +52,70 @@ const IndexPage = () => {
         const storyData = await storyStatusResponse.json();
 
         if (storyData.done) {
-          setGeneratedStory(storyData.story);
+          if (storyData.story && storyData.story.length > 5) {
+            setGeneratedStory(storyData.story);
 
-          // Now that the story is generated, initiate picture generation
-          const pictureResponse = await fetch('/api/generatePictures', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              prompt: storyData.story, // Use the generated story as a prompt
-              numPictures: storyParams.numPictures,
-            }),
-          });
-
-          if (!pictureResponse.ok) {
-            const errorData = await pictureResponse.text();
-            throw new Error(`Error generating pictures: ${errorData}`);
-          }
-
-          const { taskId: pictureTaskId } = await pictureResponse.json();
-
-          // Validate taskId for pictures
-          if (!pictureTaskId) {
-            throw new Error('Picture Task ID is undefined');
-          }
-
-          console.log('Picture Task ID:', pictureTaskId); // Log picture task ID
-
-          // Poll for picture completion
-          const pollPictures = async () => {
-            const pictureStatusResponse = await fetch(`/api/checkPictureStatus`, {
+            // Generate pictures based on the story
+            const pictureResponse = await fetch('/api/generatePictures', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ taskId: pictureTaskId }), // Send taskId in the body
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                prompt: storyData.story,
+                numPictures: storyParams.numPictures,
+              }),
             });
 
-            if (!pictureStatusResponse.ok) {
-              const errorData = await pictureStatusResponse.text();
-              throw new Error(`Error checking picture status: ${errorData}`);
+            if (!pictureResponse.ok) {
+              const errorData = await pictureResponse.text();
+              throw new Error(`Error generating pictures: ${errorData}`);
             }
 
-            const pictureData = await pictureStatusResponse.json();
-
-            if (pictureData.done) {
-              setImages(pictureData.images);
-            } else {
-              setTimeout(pollPictures, 5000);
+            const { taskId: pictureTaskId } = await pictureResponse.json();
+            if (!pictureTaskId) {
+              throw new Error('Picture Task ID is undefined');
             }
-          };
 
-          pollPictures(); // Start polling for pictures
+            console.log('Picture Task ID:', pictureTaskId); // Log picture task ID
+
+            let retryCount = 0;
+            const pollPictures = async () => {
+              if (retryCount > 5) {
+                setError('Failed to generate images after multiple attempts.');
+                return;
+              }
+
+              const pictureStatusResponse = await fetch(`/api/checkPictureStatus`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskId: pictureTaskId }),
+              });
+
+              if (!pictureStatusResponse.ok) {
+                const errorData = await pictureStatusResponse.text();
+                console.error('Error checking picture status:', errorData);
+                retryCount += 1;
+                setTimeout(pollPictures, 5000);
+                return;
+              }
+
+              const pictureData = await pictureStatusResponse.json();
+              if (pictureData.done) {
+                setImages(pictureData.images);
+              } else {
+                setTimeout(pollPictures, 5000);
+              }
+            };
+
+            pollPictures();
+          } else {
+            throw new Error('Generated story is too short.');
+          }
         } else {
           setTimeout(pollStory, 5000);
         }
       };
 
-      pollStory(); // Start polling for story
-
+      pollStory();
     } catch (error) {
       console.error('Error generating content:', error);
       setError('Failed to generate content. Please try again.');
@@ -124,8 +127,6 @@ const IndexPage = () => {
   return (
     <div className={styles.container}>
       <h1>Story and Image Generator</h1>
-
-      {/* Form to set parameters */}
       <div className={styles.form}>
         <label>
           Age:
@@ -165,8 +166,6 @@ const IndexPage = () => {
       </div>
 
       {error && <p className={styles.error}>{error}</p>}
-
-      {/* Render generated story */}
       {generatedStory && (
         <div className={styles.storyTable}>
           <h2>Generated Story</h2>
@@ -182,7 +181,6 @@ const IndexPage = () => {
         </div>
       )}
 
-      {/* Render images */}
       {images.length > 0 && (
         <div className={styles.imageTable}>
           <h2>Illustrations</h2>
