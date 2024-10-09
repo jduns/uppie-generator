@@ -4,6 +4,11 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { prompt, numPictures, webhookUrl } = req.body;
 
+        // Validate the prompt length
+        if (!prompt || prompt.length < 5) {
+            return res.status(400).json({ error: 'Prompt is too short. It must be at least 5 characters long.' });
+        }
+
         try {
             const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
 
