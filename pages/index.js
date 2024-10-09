@@ -40,7 +40,13 @@ const IndexPage = () => {
 
       // Poll for story completion
       const pollStory = async () => {
-        const storyStatusResponse = await fetch(`/api/checkStoryStatus?taskId=${storyTaskId}`);
+        const storyStatusResponse = await fetch('/api/checkStoryStatus', { // Use POST request
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ taskId: storyTaskId }), // Send taskId in the body
+        });
 
         if (!storyStatusResponse.ok) {
           throw new Error('Error checking story status');
@@ -74,7 +80,13 @@ const IndexPage = () => {
 
           // Poll for picture completion
           const pollPictures = async () => {
-            const pictureStatusResponse = await fetch(`/api/checkPictureStatus?taskId=${pictureTaskId}`);
+            const pictureStatusResponse = await fetch(`/api/checkPictureStatus`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ taskId: pictureTaskId }), // Send taskId in the body
+            });
 
             if (!pictureStatusResponse.ok) {
               throw new Error('Error checking picture status');
