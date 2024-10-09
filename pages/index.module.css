@@ -52,22 +52,3 @@
 
 .button:hover {
   background-color: #0051a2;
-}
-
-.storyContainer {
-  margin-top: 2rem;
-  background-color: #fff;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.storyTitle {
-  color: #333;
-  margin-bottom: 1rem;
-}
-
-.storyContent {
-  white-space: pre-wrap;
-  line-height: 1.6;
-}
