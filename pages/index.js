@@ -38,76 +38,72 @@ const IndexPage = () => {
         throw new Error('Story Task ID is undefined');
       }
 
-      // Poll for story completion
-      const pollStory = async () => {
-        const storyStatusResponse = await fetch('/api/checkStoryStatus', { // Use POST request
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ taskId: storyTaskId }), // Send taskId in the body
-        });
+     // Poll for story completion
+const pollStory = async () => {
+  const storyStatusResponse = await fetch(`/api/checkStoryStatus?taskId=${storyTaskId}`, {
+    method: 'GET', // Change to GET request
+  });
 
-        if (!storyStatusResponse.ok) {
-          throw new Error('Error checking story status');
-        }
+  if (!storyStatusResponse.ok) {
+    throw new Error('Error checking story status');
+  }
 
-        const storyData = await storyStatusResponse.json();
+  const storyData = await storyStatusResponse.json();
 
-        if (storyData.done) {
-          setGeneratedStory(storyData.story);
+  if (storyData.done) {
+    setGeneratedStory(storyData.story);
 
-          // Now that the story is generated, initiate picture generation
-          const pictureResponse = await fetch('/api/generatePictures', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              prompt: storyData.story, // Use the generated story as a prompt
-              numPictures: storyParams.numPictures,
-            }),
-          });
+    // Now that the story is generated, initiate picture generation
+    const pictureResponse = await fetch('/api/generatePictures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: storyData.story, // Use the generated story as a prompt
+        numPictures: storyParams.numPictures,
+      }),
+    });
 
-          if (!pictureResponse.ok) {
-            throw new Error(`HTTP error! status: ${pictureResponse.status}`);
-          }
+    if (!pictureResponse.ok) {
+      throw new Error(`HTTP error! status: ${pictureResponse.status}`);
+    }
 
-          const { taskId: pictureTaskId } = await pictureResponse.json();
+    const { taskId: pictureTaskId } = await pictureResponse.json();
 
-          // Validate taskId for pictures
-          if (!pictureTaskId) {
-            throw new Error('Picture Task ID is undefined');
-          }
+    // Validate taskId for pictures
+    if (!pictureTaskId) {
+      throw new Error('Picture Task ID is undefined');
+    }
 
-          // Poll for picture completion
-          const pollPictures = async () => {
-            const pictureStatusResponse = await fetch(`/api/checkPictureStatus`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ taskId: pictureTaskId }), // Send taskId in the body
-            });
+    // Poll for picture completion
+    const pollPictures = async () => {
+      const pictureStatusResponse = await fetch(`/api/checkPictureStatus`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ taskId: pictureTaskId }), // Send taskId in the body
+      });
 
-            if (!pictureStatusResponse.ok) {
-              throw new Error('Error checking picture status');
-            }
+      if (!pictureStatusResponse.ok) {
+        throw new Error('Error checking picture status');
+      }
 
-            const pictureData = await pictureStatusResponse.json();
+      const pictureData = await pictureStatusResponse.json();
 
-            if (pictureData.done) {
-              setImages(pictureData.images);
-            } else {
-              setTimeout(pollPictures, 5000);
-            }
-          };
+      if (pictureData.done) {
+        setImages(pictureData.images);
+      } else {
+        setTimeout(pollPictures, 5000);
+      }
+    };
 
-          pollPictures(); // Start polling for pictures
-        } else {
-          setTimeout(pollStory, 5000);
-        }
-      };
+    pollPictures(); // Start polling for pictures
+  } else {
+    setTimeout(pollStory, 5000);
+  }
+};
 
-      pollStory(); // Start polling for story
+pollStory(); // Start polling for story
 
     } catch (error) {
       console.error('Error generating content:', error);
