@@ -1,46 +1,38 @@
-// pages/api/generateStory.js
+// pages/api/generatePictures.js
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { age, storyType, length, numPictures } = req.body;
-    
+    const { prompt, numPictures } = req.body; // Get prompt and number of pictures from the request body
+
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
-      
-      // Construct the prompt based on the input parameters
-      const prompt = `Write a ${length} ${storyType} story for a ${age}-year-old child. The story should have ${numPictures} key scenes that could be illustrated.`;
+
+      // Construct the request body according to the API's requirements
+      const requestBody = {
+        prompt: prompt,
+        n: numPictures, // Make sure this aligns with the API's expected parameter
+        // You may need to include other parameters based on the API documentation
+      };
 
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': apiKey
+          'apikey': apiKey,
         },
-        body: JSON.stringify({
-          prompt: prompt,
-          params: {
-            n: 1,
-            max_context_length: 2048,
-            max_length: 512,
-            temperature: 0.7,
-            top_p: 0.9,
-            top_k: 40,
-            repetition_penalty: 1.2
-          }
-        })
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorDetails = await response.json(); // Capture error details
+        throw new Error(`HTTP error! Status: ${response.status}, Details: ${JSON.stringify(errorDetails)}`);
       }
 
       const data = await response.json();
-      
-      // Return the task ID immediately
-      res.status(202).json({ taskId: data.id });
+      res.status(200).json(data); // Respond with the API data
     } catch (error) {
-      console.error('Error initiating story generation:', error);
-      res.status(500).json({ error: error.message || 'Error initiating story generation. Please try again later.' });
+      console.error('Error generating pictures:', error);
+      res.status(500).json({ error: error.message || 'Error generating pictures. Please try again later.' });
     }
   } else {
     res.setHeader('Allow', ['POST']);
