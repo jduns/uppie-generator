@@ -1,14 +1,13 @@
-import * as React from "react";
+// components/StoryTypeSelect.js
 
+import * as React from "react";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "./select";
+} from "./select"; // Adjust the path if necessary
 
 const StoryTypeSelect = ({ storyParams, handleInputChange }) => {
   return (
