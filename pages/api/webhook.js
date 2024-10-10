@@ -1,64 +1,32 @@
-// pages/api/webhook.js
+import { createClient } from '@vercel/kv';
+
+const kv = createClient({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { type, ...data } = req.body; // Capture the incoming data and determine the type
+    const { type, id } = req.query;
+    const data = req.body;
 
-    // Check the type of generation and process accordingly
-    if (type === 'image') {
-      const { img, seed, worker_id, worker_name, model, id, gen_metadata, request, kudos } = data;
+    console.log(`Received webhook for ${type}, ID: ${id}`);
+    console.log('Webhook data:', data);
 
-      console.log(`Received image webhook for job ID ${id}:`, {
-        img,
-        seed,
-        worker_id,
-        worker_name,
-        model,
-        gen_metadata,
-        request,
-        kudos,
-      });
+    try {
+      if (type === 'text') {
+        await kv.set(`story:${id}`, data.text);
+      } else if (type === 'image') {
+        const currentImages = await kv.get(`images:${id}`) || [];
+        currentImages.push(data.img);
+        await kv.set(`images:${id}`, currentImages);
+      }
 
-      // Here, you can store the image data in your database or send it to the frontend
-      // For example, you might want to send a notification to the user about the generated image
-
-    } else if (type === 'text') {
-      const { text, seed, worker_id, worker_name, model, id, gen_metadata, request, kudos } = data;
-
-      console.log(`Received text webhook for job ID ${id}:`, {
-        text,
-        seed,
-        worker_id,
-        worker_name,
-        model,
-        gen_metadata,
-        request,
-        kudos,
-      });
-
-      // Process the text data here
-
-    } else if (type === 'alchemy') {
-      const { form, state, result, worker_id, worker_name, id, request, kudos } = data;
-
-      console.log(`Received alchemy webhook for job ID ${id}:`, {
-        form,
-        state,
-        result,
-        worker_id,
-        worker_name,
-        kudos,
-      });
-
-      // Process the alchemy data here
-
-    } else {
-      console.error('Unknown generation type:', type);
-      return res.status(400).json({ error: 'Unknown generation type' });
+      res.status(200).json({ message: 'Webhook processed successfully' });
+    } catch (error) {
+      console.error('Error processing webhook:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    // Send a response back to acknowledge receipt of the webhook
-    res.status(200).json({ message: 'Webhook received successfully' });
   } else {
     res.setHeader('Allow', ['POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
