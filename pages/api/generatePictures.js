@@ -1,4 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
+// pages/api/generatePictures.js
+import { generateUniqueId } from '../../utils';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
@@ -6,7 +7,7 @@ export default async function handler(req, res) {
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
       const webhookUrl = `${process.env.VERCEL_URL || 'http://localhost:3000'}/api/webhook`;
-      const uniqueId = uuidv4();
+      const uniqueId = generateUniqueId();
 
       const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
         method: 'POST',
