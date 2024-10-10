@@ -1,5 +1,9 @@
 // pages/api/generateStory.js
-import { generateUniqueId } from '../utils';
+
+// Inline function to generate a unique ID
+function generateUniqueId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
