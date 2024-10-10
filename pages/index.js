@@ -78,40 +78,43 @@ const IndexPage = () => {
 
             let retryCount = 0;
             const pollPictures = async () => {
-              if (retryCount > 5) {
-                setError('Failed to generate images after multiple attempts.');
-                return;
-              }
+  if (retryCount > 5) {
+    setError('Failed to generate images after multiple attempts.');
+    return;
+  }
 
-              const pictureStatusResponse = await fetch(`/api/checkPictureStatus`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ taskId: pictureTaskId }),
-              });
+  try {
+    const pictureStatusResponse = await fetch(`/api/checkPictureStatus`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId: pictureTaskId }),
+    });
 
-              if (!pictureStatusResponse.ok) {
-                const errorData = await pictureStatusResponse.text();
-                console.error('Error checking picture status:', errorData);
-                retryCount += 1;
-                setTimeout(pollPictures, 5000);
-                return;
-              }
+    if (!pictureStatusResponse.ok) {
+      throw new Error(`HTTP error! status: ${pictureStatusResponse.status}`);
+    }
 
-              const pictureData = await pictureStatusResponse.json();
-              console.log('Received picture data:', pictureData);
+    const pictureData = await pictureStatusResponse.json();
+    console.log('Received picture data:', pictureData);
 
-              if (pictureData.done && Array.isArray(pictureData.images)) {
-                console.log('Received images:', pictureData.images);
-                const validImages = pictureData.images.filter(img => img && typeof img === 'string' && img.startsWith('data:image'));
-                setImages(validImages);
-                if (validImages.length === 0) {
-                  setError('No valid images were generated. Please try again.');
-                }
-              } else {
-                setTimeout(pollPictures, 5000);
-              }
-            };
+    if (pictureData.done && Array.isArray(pictureData.images)) {
+      console.log('Received images:', pictureData.images);
+      const validImages = pictureData.images.filter(img => img && typeof img === 'string' && img.startsWith('data:image'));
+      setImages(validImages);
 
+      if (validImages.length === 0) {
+        setError('No valid images were generated. Please try again.');
+      }
+    } else {
+      retryCount += 1;
+      setTimeout(pollPictures, 5000);
+    }
+  } catch (error) {
+    console.error('Error in pollPictures:', error);
+    retryCount += 1;
+    setTimeout(pollPictures, 5000);
+  }
+};
             pollPictures();
           } else {
             throw new Error('Generated story is too short.');
