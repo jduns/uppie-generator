@@ -1,6 +1,5 @@
 // pages/api/generateStory.js
 
-// Inline function to generate a unique ID
 function generateUniqueId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
@@ -13,21 +12,27 @@ export default async function handler(req, res) {
       const webhookUrl = `${process.env.VERCEL_URL || 'http://localhost:3000'}/api/webhook`;
       const uniqueId = generateUniqueId();
 
+      const requestBody = {
+        prompt,
+        params: {
+          max_length: 512,
+          max_context_length: 1024,
+        },
+        webhook: `${webhookUrl}?type=text&id=${uniqueId}`,
+      };
+
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          params: {
-            max_length: 512,
-            max_context_length: 1024,
-          },
-          webhook: `${webhookUrl}?type=text&id=${uniqueId}`,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('API response:', response.status, errorText);
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
       const data = await response.json();
