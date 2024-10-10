@@ -31,7 +31,19 @@ export default async function handler(req, res) {
         }
 
         const imagesData = await imagesResponse.json();
-        const images = imagesData.generations.map(gen => `data:image/webp;base64,${gen.img}`);
+        console.log('Images Data:', imagesData);  // Log the full images data
+
+        // Ensure we're correctly extracting the image data
+        const images = imagesData.generations.map(gen => {
+          if (gen.img) {
+            return `data:image/webp;base64,${gen.img}`;
+          } else {
+            console.error('Missing image data for generation:', gen);
+            return null;
+          }
+        }).filter(img => img !== null);
+
+        console.log('Processed Images:', images);  // Log the processed image URLs
 
         res.status(200).json({ done: true, images });
       } else {
