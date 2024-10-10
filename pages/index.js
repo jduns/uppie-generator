@@ -77,9 +77,10 @@ const IndexPage = () => {
             console.log('Picture Task ID:', pictureTaskId);
 
             let retryCount = 0;
-            const pollPictures = async () => {
-  if (retryCount > 5) {
-    setError('Failed to generate images after multiple attempts.');
+          const pollPictures = async () => {
+  if (retryCount > 10) {  // Increased retry count
+    setError('Failed to generate images after multiple attempts. The server might be busy. Please try again later.');
+    setIsLoading(false);
     return;
   }
 
@@ -105,14 +106,17 @@ const IndexPage = () => {
       if (validImages.length === 0) {
         setError('No valid images were generated. Please try again.');
       }
+      setIsLoading(false);
     } else {
+      setError(`Image generation in progress: ${pictureData.message || 'Please wait...'}`);
       retryCount += 1;
-      setTimeout(pollPictures, 5000);
+      setTimeout(pollPictures, 10000);  // Increased polling interval to 10 seconds
     }
   } catch (error) {
     console.error('Error in pollPictures:', error);
+    setError(`Error checking image status: ${error.message}`);
     retryCount += 1;
-    setTimeout(pollPictures, 5000);
+    setTimeout(pollPictures, 10000);  // Increased polling interval to 10 seconds
   }
 };
             pollPictures();
