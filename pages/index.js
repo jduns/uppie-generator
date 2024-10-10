@@ -1,5 +1,6 @@
+// pages/index.js
 import { useState } from 'react';
-import styles from './index.module.css';
+import styles from '../styles/index.module.css';
 
 const IndexPage = () => {
   const [storyParams, setStoryParams] = useState({
@@ -97,11 +98,15 @@ const IndexPage = () => {
               }
 
               const pictureData = await pictureStatusResponse.json();
-              console.log('Received picture data:', pictureData);  // Log received data
+              console.log('Received picture data:', pictureData);
 
-              if (pictureData.done) {
-                console.log('Received images:', pictureData.images);  // Log received images
-                setImages(pictureData.images);
+              if (pictureData.done && Array.isArray(pictureData.images)) {
+                console.log('Received images:', pictureData.images);
+                const validImages = pictureData.images.filter(img => img && typeof img === 'string' && img.startsWith('data:image'));
+                setImages(validImages);
+                if (validImages.length === 0) {
+                  setError('No valid images were generated. Please try again.');
+                }
               } else {
                 setTimeout(pollPictures, 5000);
               }
@@ -191,19 +196,16 @@ const IndexPage = () => {
               <tr>
                 {images.map((img, index) => (
                   <td key={index} className={styles.imageCell}>
-                    {img ? (
-                      <img 
-                        src={img} 
-                        alt={`Illustration ${index + 1}`} 
-                        className={styles.image}
-                        onError={(e) => {
-                          console.error(`Error loading image ${index}:`, e);
-                          e.target.src = '/placeholder-image.png';  // Replace with an actual placeholder image path
-                        }}
-                      />
-                    ) : (
-                      <p>Image failed to load</p>
-                    )}
+                    <img 
+                      src={img} 
+                      alt={`Illustration ${index + 1}`} 
+                      className={styles.image}
+                      onError={(e) => {
+                        console.error(`Error loading image ${index}:`, e);
+                        e.target.onerror = null; // Prevent infinite loop
+                        e.target.src = '/placeholder.png';
+                      }}
+                    />
                   </td>
                 ))}
               </tr>
