@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     const { prompt } = req.body;
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
-      const webhookUrl = `${process.env.VERCEL_URL || 'https://uppie-generator-qzzawlb4j-joshua-dunsworths-projects.vercel.app'}/api/webhook`;
+      const webhookUrl = `${process.env.VERCEL_URL || 'https://uppie-generator.vercel.app'}/api/webhook`;
       const uniqueId = generateUniqueId();
 
       const requestBody = {
