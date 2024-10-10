@@ -1,11 +1,14 @@
+import { v4 as uuidv4 } from 'uuid';
+
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { prompt, numPictures } = req.body;
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
-      console.log(`Initiating image generation for prompt: "${prompt}", numPictures: ${numPictures}`);
+      const webhookUrl = `${process.env.VERCEL_URL || 'http://localhost:3000'}/api/webhook`;
+      const uniqueId = uuidv4();
 
-      const generateResponse = await fetch('https://stablehorde.net/api/v2/generate/async', {
+      const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
         method: 'POST',
         headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -15,26 +18,20 @@ export default async function handler(req, res) {
             width: 512,
             height: 512,
           },
+          webhook: `${webhookUrl}?type=image&id=${uniqueId}`,
         }),
       });
 
-      const responseText = await generateResponse.text();
-      console.log('Raw API response:', responseText);
-
-      if (!generateResponse.ok) {
-        throw new Error(`Error initiating image generation: ${generateResponse.status} - ${responseText}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const generateData = JSON.parse(responseText);
-      console.log('Parsed image generation response:', generateData);
+      const data = await response.json();
+      console.log('Image generation initiated:', data);
 
-      if (!generateData.id) {
-        throw new Error('Task ID is undefined in the response.');
-      }
-
-      res.status(200).json({ taskId: generateData.id });
+      res.status(200).json({ taskId: data.id, uniqueId });
     } catch (error) {
-      console.error('Error in generatePictures:', error);
+      console.error('Error generating pictures:', error);
       res.status(500).json({ error: error.message });
     }
   } else {
