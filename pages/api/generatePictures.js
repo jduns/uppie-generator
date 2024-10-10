@@ -1,10 +1,9 @@
-// pages/api/generatePictures.js
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { prompt, numPictures } = req.body;
-    
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
+      console.log('Sending request to Stable Horde API with prompt:', prompt);
       
       const generateResponse = await fetch('https://stablehorde.net/api/v2/generate/async', {
         method: 'POST',
@@ -20,8 +19,9 @@ export default async function handler(req, res) {
       });
 
       if (!generateResponse.ok) {
-        const errorData = await generateResponse.json();
-        throw new Error(`Error initiating image generation: ${generateResponse.status} - ${JSON.stringify(errorData)}`);
+        const errorData = await generateResponse.text();
+        console.error('Stable Horde API error response:', errorData);
+        throw new Error(`Error initiating image generation: ${generateResponse.status} - ${errorData}`);
       }
 
       const generateData = await generateResponse.json();
