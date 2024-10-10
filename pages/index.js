@@ -17,7 +17,7 @@ const IndexPage = () => {
     setIsLoading(true);
     setError('');
     setGeneratedStory('');
-    setImages([]); // Reset images
+    setImages([]);
 
     try {
       // Initiate story generation
@@ -37,7 +37,7 @@ const IndexPage = () => {
         throw new Error('Story Task ID is undefined');
       }
 
-      console.log('Story Task ID:', storyTaskId); // Log story task ID
+      console.log('Story Task ID:', storyTaskId);
 
       const pollStory = async () => {
         const storyStatusResponse = await fetch(`/api/checkStoryStatus?taskId=${storyTaskId}`, {
@@ -50,11 +50,9 @@ const IndexPage = () => {
         }
 
         const storyData = await storyStatusResponse.json();
-
         if (storyData.done) {
           if (storyData.story && storyData.story.length > 5) {
             setGeneratedStory(storyData.story);
-
             // Generate pictures based on the story
             const pictureResponse = await fetch('/api/generatePictures', {
               method: 'POST',
@@ -75,7 +73,7 @@ const IndexPage = () => {
               throw new Error('Picture Task ID is undefined');
             }
 
-            console.log('Picture Task ID:', pictureTaskId); // Log picture task ID
+            console.log('Picture Task ID:', pictureTaskId);
 
             let retryCount = 0;
             const pollPictures = async () => {
@@ -99,7 +97,10 @@ const IndexPage = () => {
               }
 
               const pictureData = await pictureStatusResponse.json();
+              console.log('Received picture data:', pictureData);  // Log received data
+
               if (pictureData.done) {
+                console.log('Received images:', pictureData.images);  // Log received images
                 setImages(pictureData.images);
               } else {
                 setTimeout(pollPictures, 5000);
@@ -164,8 +165,9 @@ const IndexPage = () => {
           {isLoading ? 'Generating...' : 'Generate Story and Images'}
         </button>
       </div>
-
+      
       {error && <p className={styles.error}>{error}</p>}
+      
       {generatedStory && (
         <div className={styles.storyTable}>
           <h2>Generated Story</h2>
@@ -180,23 +182,35 @@ const IndexPage = () => {
           </table>
         </div>
       )}
-
+      
       {images.length > 0 && (
-  <div className={styles.imageTable}>
-    <h2>Illustrations</h2>
-    <table className={styles.table}>
-      <tbody>
-        <tr>
-          {images.map((img, index) => (
-            <td key={index} className={styles.imageCell}>
-              <img src={img} alt={`Illustration ${index + 1}`} className={styles.image} />
-            </td>
-          ))}
-        </tr>
-      </tbody>
-    </table>
-  </div>
-)}
+        <div className={styles.imageTable}>
+          <h2>Illustrations</h2>
+          <table className={styles.table}>
+            <tbody>
+              <tr>
+                {images.map((img, index) => (
+                  <td key={index} className={styles.imageCell}>
+                    {img ? (
+                      <img 
+                        src={img} 
+                        alt={`Illustration ${index + 1}`} 
+                        className={styles.image}
+                        onError={(e) => {
+                          console.error(`Error loading image ${index}:`, e);
+                          e.target.src = '/placeholder-image.png';  // Replace with an actual placeholder image path
+                        }}
+                      />
+                    ) : (
+                      <p>Image failed to load</p>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
