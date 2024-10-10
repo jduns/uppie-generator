@@ -182,21 +182,21 @@ const IndexPage = () => {
       )}
 
       {images.length > 0 && (
-        <div className={styles.imageTable}>
-          <h2>Illustrations</h2>
-          <table className={styles.table}>
-            <tbody>
-              <tr>
-                {images.map((img, index) => (
-                  <td key={index} className={styles.imageCell}>
-                    <img src={img} alt={`Illustration ${index + 1}`} className={styles.image} />
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
+  <div className={styles.imageTable}>
+    <h2>Illustrations</h2>
+    <table className={styles.table}>
+      <tbody>
+        <tr>
+          {images.map((img, index) => (
+            <td key={index} className={styles.imageCell}>
+              <img src={img} alt={`Illustration ${index + 1}`} className={styles.image} />
+            </td>
+          ))}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+)}
     </div>
   );
 };
