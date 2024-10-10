@@ -3,8 +3,8 @@ export default async function handler(req, res) {
     const { prompt, numPictures } = req.body;
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
-      console.log('Sending request to Stable Horde API with prompt:', prompt);
-      
+      console.log(`Initiating image generation for prompt: "${prompt}", numPictures: ${numPictures}`);
+
       const generateResponse = await fetch('https://stablehorde.net/api/v2/generate/async', {
         method: 'POST',
         headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
@@ -18,14 +18,15 @@ export default async function handler(req, res) {
         }),
       });
 
+      const responseText = await generateResponse.text();
+      console.log('Raw API response:', responseText);
+
       if (!generateResponse.ok) {
-        const errorData = await generateResponse.text();
-        console.error('Stable Horde API error response:', errorData);
-        throw new Error(`Error initiating image generation: ${generateResponse.status} - ${errorData}`);
+        throw new Error(`Error initiating image generation: ${generateResponse.status} - ${responseText}`);
       }
 
-      const generateData = await generateResponse.json();
-      console.log('Image generation response:', generateData);
+      const generateData = JSON.parse(responseText);
+      console.log('Parsed image generation response:', generateData);
 
       if (!generateData.id) {
         throw new Error('Task ID is undefined in the response.');
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
 
       res.status(200).json({ taskId: generateData.id });
     } catch (error) {
-      console.error('Error generating pictures:', error);
+      console.error('Error in generatePictures:', error);
       res.status(500).json({ error: error.message });
     }
   } else {
