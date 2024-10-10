@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "../components/ui/alert";
+import styles from '../styles/index.module.css';
 
 export default function Home() {
   const [storyParams, setStoryParams] = useState({
