@@ -4,22 +4,31 @@ export default async function handler(req, res) {
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
       
-      const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/status/${taskId}`, {
+      const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${taskId}`, {
         method: 'GET',
         headers: { 'apikey': apiKey },
       });
 
+      const responseText = await statusResponse.text();
+      console.log('Raw status response:', responseText);
+
       if (!statusResponse.ok) {
-        const errorData = await statusResponse.text();
-        console.error('Status check error response:', errorData);
-        throw new Error(`Error checking picture status: ${statusResponse.status} - ${errorData}`);
+        throw new Error(`Error checking picture status: ${statusResponse.status} - ${responseText}`);
       }
 
-      const statusData = await statusResponse.json();
-      console.log('Status Response:', statusData);
+      const statusData = JSON.parse(responseText);
+      console.log('Parsed status data:', statusData);
 
       if (statusData.done) {
-        const images = statusData.generations.map(gen => {
+        const imagesResponse = await fetch(`https://stablehorde.net/api/v2/generate/status/${taskId}`, {
+          method: 'GET',
+          headers: { 'apikey': apiKey },
+        });
+
+        const imagesData = await imagesResponse.json();
+        console.log('Images data:', imagesData);
+
+        const images = imagesData.generations.map(gen => {
           if (gen.img) {
             return `data:image/webp;base64,${gen.img}`;
           } else {
@@ -31,10 +40,14 @@ export default async function handler(req, res) {
         console.log(`Processed ${images.length} images`);
         res.status(200).json({ done: true, images });
       } else {
-        res.status(200).json({ done: false, ...statusData });
+        res.status(200).json({ 
+          done: false, 
+          ...statusData,
+          message: `Generation in progress. Waiting: ${statusData.waiting}, Processing: ${statusData.processing}`
+        });
       }
     } catch (error) {
-      console.error('Error checking picture status:', error);
+      console.error('Error in checkPictureStatus:', error);
       res.status(500).json({ error: error.message });
     }
   } else {
