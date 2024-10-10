@@ -1,5 +1,4 @@
-// pages/index.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from '../styles/index.module.css';
 
 const IndexPage = () => {
@@ -13,6 +12,7 @@ const IndexPage = () => {
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [uniqueId, setUniqueId] = useState('');
 
   const generateContent = async () => {
     setIsLoading(true);
@@ -21,121 +21,71 @@ const IndexPage = () => {
     setImages([]);
 
     try {
-      // Initiate story generation
+      // Generate story
       const storyResponse = await fetch('/api/generateStory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storyParams),
+        body: JSON.stringify({ prompt: `Write a ${storyParams.length} ${storyParams.storyType} story for a ${storyParams.age}-year-old child.` }),
       });
 
       if (!storyResponse.ok) {
-        const errorData = await storyResponse.text();
-        throw new Error(`Error generating story: ${errorData}`);
+        throw new Error('Failed to generate story');
       }
 
-      const { taskId: storyTaskId } = await storyResponse.json();
-      if (!storyTaskId) {
-        throw new Error('Story Task ID is undefined');
+      const { uniqueId: storyId } = await storyResponse.json();
+      setUniqueId(storyId);
+
+      // Generate pictures
+      const pictureResponse = await fetch('/api/generatePictures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `A ${storyParams.storyType} scene for a children's story`,
+          numPictures: storyParams.numPictures,
+        }),
+      });
+
+      if (!pictureResponse.ok) {
+        throw new Error('Failed to generate pictures');
       }
 
-      console.log('Story Task ID:', storyTaskId);
-
-      const pollStory = async () => {
-        const storyStatusResponse = await fetch(`/api/checkStoryStatus?taskId=${storyTaskId}`, {
-          method: 'GET',
-        });
-
-        if (!storyStatusResponse.ok) {
-          const errorData = await storyStatusResponse.text();
-          throw new Error(`Error checking story status: ${errorData}`);
-        }
-
-        const storyData = await storyStatusResponse.json();
-        if (storyData.done) {
-          if (storyData.story && storyData.story.length > 5) {
-            setGeneratedStory(storyData.story);
-            // Generate pictures based on the story
-            const pictureResponse = await fetch('/api/generatePictures', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                prompt: storyData.story,
-                numPictures: storyParams.numPictures,
-              }),
-            });
-
-            if (!pictureResponse.ok) {
-              const errorData = await pictureResponse.text();
-              throw new Error(`Error generating pictures: ${errorData}`);
-            }
-
-            const { taskId: pictureTaskId } = await pictureResponse.json();
-            if (!pictureTaskId) {
-              throw new Error('Picture Task ID is undefined');
-            }
-
-            console.log('Picture Task ID:', pictureTaskId);
-
-            let retryCount = 0;
-          const pollPictures = async () => {
-  if (retryCount > 10) {  // Increased retry count
-    setError('Failed to generate images after multiple attempts. The server might be busy. Please try again later.');
-    setIsLoading(false);
-    return;
-  }
-
-  try {
-    const pictureStatusResponse = await fetch(`/api/checkPictureStatus`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId: pictureTaskId }),
-    });
-
-    if (!pictureStatusResponse.ok) {
-      throw new Error(`HTTP error! status: ${pictureStatusResponse.status}`);
-    }
-
-    const pictureData = await pictureStatusResponse.json();
-    console.log('Received picture data:', pictureData);
-
-    if (pictureData.done && Array.isArray(pictureData.images)) {
-      console.log('Received images:', pictureData.images);
-      const validImages = pictureData.images.filter(img => img && typeof img === 'string' && img.startsWith('data:image'));
-      setImages(validImages);
-
-      if (validImages.length === 0) {
-        setError('No valid images were generated. Please try again.');
-      }
       setIsLoading(false);
-    } else {
-      setError(`Image generation in progress: ${pictureData.message || 'Please wait...'}`);
-      retryCount += 1;
-      setTimeout(pollPictures, 10000);  // Increased polling interval to 10 seconds
-    }
-  } catch (error) {
-    console.error('Error in pollPictures:', error);
-    setError(`Error checking image status: ${error.message}`);
-    retryCount += 1;
-    setTimeout(pollPictures, 10000);  // Increased polling interval to 10 seconds
-  }
-};
-            pollPictures();
-          } else {
-            throw new Error('Generated story is too short.');
-          }
-        } else {
-          setTimeout(pollStory, 5000);
-        }
-      };
-
-      pollStory();
     } catch (error) {
       console.error('Error generating content:', error);
       setError('Failed to generate content. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (uniqueId) {
+      const interval = setInterval(async () => {
+        try {
+          const storyResponse = await fetch(`/api/getStory?id=${uniqueId}`);
+          const picturesResponse = await fetch(`/api/getPictures?id=${uniqueId}`);
+
+          if (storyResponse.ok) {
+            const storyData = await storyResponse.json();
+            if (storyData.story) {
+              setGeneratedStory(storyData.story);
+              clearInterval(interval);
+            }
+          }
+
+          if (picturesResponse.ok) {
+            const picturesData = await picturesResponse.json();
+            if (picturesData.images && picturesData.images.length > 0) {
+              setImages(picturesData.images);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching content:', error);
+        }
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [uniqueId]);
 
   return (
     <div className={styles.container}>
