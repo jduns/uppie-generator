@@ -1,118 +1,84 @@
 // uppie-generator/pages/index.js
 
-import React, { useState } from 'react';
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
-import { Alert, AlertTitle, AlertDescription } from "../components/ui/alert";
+import { useState } from 'react';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert';
 import styles from '../styles/index.module.css';
 
 export default function Home() {
   const [storyParams, setStoryParams] = useState({
-    age: 5,
-    storyType: 'adventure',
-    length: 'medium',
-    numPictures: 3,
+    age: '',
+    storyType: '',
+    length: '',
+    numPictures: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
   const [generatedStory, setGeneratedStory] = useState('');
   const [generatedImages, setGeneratedImages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [workerInfo, setWorkerInfo] = useState('');
   const [modelInfo, setModelInfo] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setStoryParams(prev => ({ ...prev, [name]: value }));
+    setStoryParams((prev) => ({ ...prev, [name]: value }));
   };
 
   const generateStory = async () => {
     setIsLoading(true);
-    setError('');
-    setGeneratedStory('');
-    setWorkerInfo('');
-    setModelInfo('');
-    setGeneratedImages([]);
-
+    setError(null);
     try {
-      const prompt = `Write a ${storyParams.length} ${storyParams.storyType} story for a ${storyParams.age}-year-old child. The story should have ${storyParams.numPictures} key scenes that could be illustrated.`;
-      const response = await fetch('/api/generateStory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setGeneratedStory(data.story);
-      setWorkerInfo(data.worker);
-      setModelInfo(data.model);
-
-      // Generate images
-      const images = await generateImages(storyParams.numPictures, data.story);
+      // Simulate generating story
+      const story = "Once upon a time...";
+      const images = ["/path/to/image1.jpg", "/path/to/image2.jpg"];
+      setGeneratedStory(story);
       setGeneratedImages(images);
-    } catch (error) {
-      console.error('Error generating story:', error);
-      setError('Failed to generate story. Please try again.');
+      setWorkerInfo("Worker Example");
+      setModelInfo("Model Example");
+    } catch (err) {
+      setError("An error occurred while generating the story.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateImages = async (numImages, storyContent) => {
-    const images = [];
-    for (let i = 0; i < numImages; i++) {
-      try {
-        const response = await fetch('/api/generateImage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: `Image for children's story: ${storyContent}` })
-        });
-        if (response.ok) {
-          const data = await response.json();
-          images.push(data.image);
-        } else {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-      } catch (error) {
-        console.error('Error generating image:', error);
-      }
-    }
-    return images;
-  };
-
-  const generateMore = async () => {
-    console.log("Generate more functionality not yet implemented");
+  const generateMore = () => {
+    setGeneratedStory('');
+    setGeneratedImages([]);
+    generateStory();
   };
 
   const regenerate = () => {
+    setGeneratedStory('');
+    setGeneratedImages([]);
     generateStory();
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Kids Storybook Generator</h1>
-      
-      <div className="space-y-4">
-        <div>
-          <label className="block mb-1">Age:</label>
+    <div className={styles.container}>
+      <h1 className={styles.title}>Kids Storybook Generator</h1>
+
+      <div className={styles.form}>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Age:</label>
           <Input
             type="number"
             name="age"
             value={storyParams.age}
             onChange={handleInputChange}
+            className={styles.input}
           />
         </div>
-        
-        <div>
-          <label className="block mb-1">Story Type:</label>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Story Type:</label>
           <Select
             name="storyType"
             value={storyParams.storyType}
-            onValueChange={(value) => handleInputChange({ target: { name: 'storyType', value } })}>
+            onValueChange={(value) => handleInputChange({ target: { name: 'storyType', value } })}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select story type" />
             </SelectTrigger>
@@ -123,13 +89,14 @@ export default function Home() {
             </SelectContent>
           </Select>
         </div>
-        
-        <div>
-          <label className="block mb-1">Length:</label>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Length:</label>
           <Select
             name="length"
             value={storyParams.length}
-            onValueChange={(value) => handleInputChange({ target: { name: 'length', value } })}>
+            onValueChange={(value) => handleInputChange({ target: { name: 'length', value } })}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select length" />
             </SelectTrigger>
@@ -140,18 +107,19 @@ export default function Home() {
             </SelectContent>
           </Select>
         </div>
-        
-        <div>
-          <label className="block mb-1">Number of Pictures:</label>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Number of Pictures:</label>
           <Input
             type="number"
             name="numPictures"
             value={storyParams.numPictures}
             onChange={handleInputChange}
+            className={styles.input}
           />
         </div>
 
-        <Button onClick={generateStory} disabled={isLoading}>
+        <Button onClick={generateStory} disabled={isLoading} className={styles.button}>
           {isLoading ? 'Generating...' : 'Generate Story'}
         </Button>
       </div>
@@ -166,20 +134,17 @@ export default function Home() {
       {isLoading && <p className="mt-4">Generating your story and images... This may take a few minutes.</p>}
 
       {generatedStory && (
-        <div className="mt-6">
-          <h2 className="text-2xl font-bold mb-2">Generated Story:</h2>
-          <p className="mb-4 whitespace-pre-wrap">{generatedStory}</p>
+        <div className={styles.storyContainer}>
+          <h2 className={styles.storyTitle}>Generated Story:</h2>
+          <p className={styles.storyContent}>{generatedStory}</p>
           <p className="text-sm text-gray-600">Worker: {workerInfo}</p>
           <p className="text-sm text-gray-600 mb-4">Model: {modelInfo}</p>
-          
+
           {generatedImages.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-xl font-bold mb-2">Generated Images:</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {generatedImages.map((image, index) => (
-                  <img key={index} src={image} alt={`Story illustration ${index + 1}`} className="w-full h-auto" />
-                ))}
-              </div>
+            <div className="grid grid-cols-2 gap-4">
+              {generatedImages.map((image, index) => (
+                <img key={index} src={image} alt={`Story illustration ${index + 1}`} className="w-full h-auto" />
+              ))}
             </div>
           )}
           
