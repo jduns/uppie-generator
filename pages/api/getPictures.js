@@ -1,17 +1,14 @@
-import { createClient } from '@vercel/kv';
-
-const kv = createClient({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-});
-
+// pages/api/getPictures.js
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { id } = req.query;
-
     try {
-      const images = await kv.get(`images:${id}`);
-      res.status(200).json({ images });
+      if (typeof window !== 'undefined') {
+        const images = JSON.parse(localStorage.getItem(`images:${id}`)) || [];
+        res.status(200).json({ images });
+      } else {
+        res.status(200).json({ images: [] });
+      }
     } catch (error) {
       console.error('Error fetching images:', error);
       res.status(500).json({ error: 'Internal server error' });
