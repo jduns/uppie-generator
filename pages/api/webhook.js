@@ -1,4 +1,7 @@
-// pages/api/webhook.js
+import NodeCache from 'node-cache';
+
+const cache = new NodeCache();
+
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { type, id } = req.query;
@@ -7,15 +10,14 @@ export default async function handler(req, res) {
     console.log('Webhook data:', data);
 
     try {
-      if (typeof window !== 'undefined') {
-        if (type === 'text') {
-          localStorage.setItem(`story:${id}`, data.text);
-        } else if (type === 'image') {
-          const currentImages = JSON.parse(localStorage.getItem(`images:${id}`)) || [];
-          currentImages.push(data.img);
-          localStorage.setItem(`images:${id}`, JSON.stringify(currentImages));
-        }
+      if (type === 'text') {
+        cache.set(`story:${id}`, data.text);
+      } else if (type === 'image') {
+        const currentImages = cache.get(`images:${id}`) || [];
+        currentImages.push(data.img);
+        cache.set(`images:${id}`, currentImages);
       }
+
       res.status(200).json({ message: 'Webhook processed successfully' });
     } catch (error) {
       console.error('Error processing webhook:', error);
