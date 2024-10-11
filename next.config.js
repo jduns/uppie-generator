@@ -9,6 +9,7 @@ module.exports = {
         dns: false,
         net: false,
         tls: false,
+        fs: false,
       };
     }
     return config;
