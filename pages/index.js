@@ -68,7 +68,6 @@ const IndexPage = () => {
             const storyData = await storyResponse.json();
             if (storyData.story) {
               setGeneratedStory(storyData.story);
-              clearInterval(interval);
             }
           }
 
@@ -78,6 +77,10 @@ const IndexPage = () => {
               setImages(picturesData.images);
             }
           }
+
+          if (storyData.story && picturesData.images && picturesData.images.length === storyParams.numPictures) {
+            clearInterval(interval);
+          }
         } catch (error) {
           console.error('Error fetching content:', error);
         }
@@ -85,7 +88,7 @@ const IndexPage = () => {
 
       return () => clearInterval(interval);
     }
-  }, [uniqueId]);
+  }, [uniqueId, storyParams.numPictures]);
 
   return (
     <div className={styles.container}>
