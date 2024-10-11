@@ -1,9 +1,8 @@
 // pages/api/generatePictures.js
-import { AIHorde } from '@zeldafan0225/ai_horde';
 import NodeCache from 'node-cache';
 
 const cache = new NodeCache();
-const horde = new AIHorde({ apiKey: process.env.AI_HORDE_API_KEY });
+const API_KEY = process.env.AI_HORDE_API_KEY || '0000000000';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
@@ -12,22 +11,34 @@ export default async function handler(req, res) {
       const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
       
       // Start the generation process
-      const generation = await horde.postImageGenerationAsync({
-        prompt,
-        params: {
-          n: numPictures,
-          width: 512,
-          height: 512,
+      const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': API_KEY
         },
+        body: JSON.stringify({
+          prompt,
+          params: {
+            n: numPictures,
+            width: 512,
+            height: 512,
+          },
+        }),
       });
 
-      console.log('Image generation started:', generation);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Image generation started:', data);
       
       // Store the generation ID in cache
-      cache.set(`images:${uniqueId}`, { status: 'pending', generationId: generation.id });
+      cache.set(`images:${uniqueId}`, { status: 'pending', generationId: data.id });
 
       // Start a background process to check the status
-      checkImageStatus(generation.id, uniqueId);
+      checkImageStatus(data.id, uniqueId);
 
       res.status(200).json({ uniqueId });
     } catch (error) {
@@ -42,7 +53,13 @@ export default async function handler(req, res) {
 
 async function checkImageStatus(generationId, uniqueId) {
   try {
-    const status = await horde.getImageGenerationStatus(generationId);
+    const response = await fetch(`https://stablehorde.net/api/v2/generate/status/${generationId}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const status = await response.json();
     console.log('Image generation status:', status);
 
     if (status.done) {
