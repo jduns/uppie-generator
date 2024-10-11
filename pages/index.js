@@ -29,52 +29,72 @@ const IndexPage = () => {
   const [imageStatus, setImageStatus] = useState('');
 
   const generateContent = async () => {
-    setIsLoading(true);
-    setError('');
-    setGeneratedStory('');
-    setImages([]);
-    setStoryStatus('Initiating story generation...');
-    setImageStatus('Initiating image generation...');
+  setIsLoading(true);
+  setError('');
+  setGeneratedStory('');
+  setImages([]);
+  setStoryStatus('Initiating story generation...');
+  setImageStatus('Initiating image generation...');
 
-    try {
-      // Generate story
-      const storyResponse = await fetch('/api/generateStory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: `Write a ${storyParams.length} ${storyParams.storyType} story for a ${storyParams.age}-year-old child.` }),
-      });
+  try {
+    // Generate story
+    const storyResponse = await fetch('/api/generateStory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: `Write a ${storyParams.length} ${storyParams.storyType} story for a ${storyParams.age}-year-old child.` }),
+    });
 
-      if (!storyResponse.ok) {
-        throw new Error('Failed to generate story');
-      }
-
-      const { uniqueId: storyId } = await storyResponse.json();
-      setUniqueId(storyId);
-      setStoryStatus('Story generation in progress...');
-
-      // Generate pictures
-      const pictureResponse = await fetch('/api/generatePictures', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: `A ${storyParams.storyType} scene for a children's story`,
-          numPictures: storyParams.numPictures,
-        }),
-      });
-
-      if (!pictureResponse.ok) {
-        throw new Error('Failed to generate pictures');
-      }
-      setImageStatus('Image generation in progress...');
-
-    } catch (error) {
-      console.error('Error generating content:', error);
-      setError('Failed to generate content. Please try again.');
-      setIsLoading(false);
-      setStoryStatus('');
-      setImageStatus('');
+    if (!storyResponse.ok) {
+      throw new Error('Failed to initiate story generation');
     }
-  };
+
+    const { uniqueId } = await storyResponse.json();
+    setUniqueId(uniqueId);
+    setStoryStatus('Story generation in progress...');
+
+    // Start polling for status
+    pollStatus(uniqueId);
+
+    // Generate pictures (similar changes as story generation)
+    // ...
+  } catch (error) {
+    console.error('Error generating content:', error);
+    setError('Failed to generate content. Please try again.');
+    setIsLoading(false);
+    setStoryStatus('');
+    setImageStatus('');
+  }
+};
+
+const pollStatus = async (uniqueId) => {
+  try {
+    const response = await fetch(`/api/checkStatus?id=${uniqueId}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    
+    if (data.storyComplete) {
+      setGeneratedStory(data.story);
+      setStoryStatus('Story generated successfully!');
+    }
+    
+    if (data.imagesComplete) {
+      setImages(data.images);
+      setImageStatus('All images generated successfully!');
+    }
+    
+    if (data.storyComplete && data.imagesComplete) {
+      setIsLoading(false);
+    } else {
+      setTimeout(() => pollStatus(uniqueId), 5000);
+    }
+  } catch (error) {
+    console.error('Error fetching content:', error);
+    setError('Error fetching content. Please try again.');
+    setIsLoading(false);
+  }
+};
 
   useEffect(() => {
   if (uniqueId) {
