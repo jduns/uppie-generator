@@ -1,13 +1,17 @@
-// pages/api/generatePictures.js
-import NodeCache from 'node-cache';
+import { MongoClient } from 'mongodb';
 
-const cache = new NodeCache();
+const uri = process.env.MONGODB_URI;
+const client = new MongoClient(uri);
 const API_KEY = process.env.AI_HORDE_API_KEY || '0000000000';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { prompt, numPictures } = req.body;
     try {
+      await client.connect();
+      const database = client.db('storybook');
+      const collection = database.collection('generations');
+
       const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
       
       // Start the generation process
@@ -33,9 +37,14 @@ export default async function handler(req, res) {
 
       const data = await response.json();
       console.log('Image generation started:', data);
-      
-      // Store the generation ID in cache
-      cache.set(`images:${uniqueId}`, { status: 'pending', generationId: data.id });
+
+      // Store the generation ID in MongoDB
+      await collection.insertOne({
+        uniqueId,
+        imageStatus: 'pending',
+        imageGenerationId: data.id,
+        numPictures
+      });
 
       // Start a background process to check the status
       checkImageStatus(data.id, uniqueId);
@@ -44,17 +53,22 @@ export default async function handler(req, res) {
     } catch (error) {
       console.error('Error generating images:', error);
       res.status(500).json({ error: error.message });
+    } finally {
+      await client.close();
     }
   } else {
     res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
 }
 
 async function checkImageStatus(generationId, uniqueId) {
   try {
+    await client.connect();
+    const database = client.db('storybook');
+    const collection = database.collection('generations');
+
     const response = await fetch(`https://stablehorde.net/api/v2/generate/status/${generationId}`);
-    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -64,13 +78,21 @@ async function checkImageStatus(generationId, uniqueId) {
 
     if (status.done) {
       const images = status.generations.map(gen => gen.img);
-      cache.set(`images:${uniqueId}`, { status: 'complete', images });
+      await collection.updateOne(
+        { uniqueId },
+        { $set: { imageStatus: 'complete', images } }
+      );
     } else {
       // Check again after 5 seconds
       setTimeout(() => checkImageStatus(generationId, uniqueId), 5000);
     }
   } catch (error) {
     console.error('Error checking image status:', error);
-    cache.set(`images:${uniqueId}`, { status: 'error', error: error.message });
+    await collection.updateOne(
+      { uniqueId },
+      { $set: { imageStatus: 'error', error: error.message } }
+    );
+  } finally {
+    await client.close();
   }
 }
