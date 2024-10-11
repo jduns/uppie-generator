@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import styles from '../styles/index.module.css';
-import clientPromise from '../../lib/mongodb';
+import clientPromise from '../lib/mongodb';
 
 // API handler (if needed in the same file)
 export const handler = async (req, res) => {
