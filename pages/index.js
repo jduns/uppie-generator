@@ -64,10 +64,14 @@ const IndexPage = () => {
           const storyResponse = await fetch(`/api/getStory?id=${uniqueId}`);
           const picturesResponse = await fetch(`/api/getPictures?id=${uniqueId}`);
 
+          let storyComplete = false;
+          let picturesComplete = false;
+
           if (storyResponse.ok) {
             const storyData = await storyResponse.json();
             if (storyData.story) {
               setGeneratedStory(storyData.story);
+              storyComplete = true;
             }
           }
 
@@ -75,10 +79,11 @@ const IndexPage = () => {
             const picturesData = await picturesResponse.json();
             if (picturesData.images && picturesData.images.length > 0) {
               setImages(picturesData.images);
+              picturesComplete = picturesData.images.length === storyParams.numPictures;
             }
           }
 
-          if (storyData.story && picturesData.images && picturesData.images.length === storyParams.numPictures) {
+          if (storyComplete && picturesComplete) {
             clearInterval(interval);
           }
         } catch (error) {
