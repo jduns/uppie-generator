@@ -1,14 +1,14 @@
 // pages/api/getPictures.js
+import NodeCache from 'node-cache';
+
+const cache = new NodeCache();
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { id } = req.query;
     try {
-      if (typeof window !== 'undefined') {
-        const images = JSON.parse(localStorage.getItem(`images:${id}`)) || [];
-        res.status(200).json({ images });
-      } else {
-        res.status(200).json({ images: [] });
-      }
+      const images = cache.get(`images:${id}`) || [];
+      res.status(200).json({ images });
     } catch (error) {
       console.error('Error fetching images:', error);
       res.status(500).json({ error: 'Internal server error' });
