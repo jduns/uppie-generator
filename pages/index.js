@@ -13,12 +13,16 @@ const IndexPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [uniqueId, setUniqueId] = useState('');
+  const [storyStatus, setStoryStatus] = useState('');
+  const [imageStatus, setImageStatus] = useState('');
 
   const generateContent = async () => {
     setIsLoading(true);
     setError('');
     setGeneratedStory('');
     setImages([]);
+    setStoryStatus('Initiating story generation...');
+    setImageStatus('Initiating image generation...');
 
     try {
       // Generate story
@@ -34,6 +38,7 @@ const IndexPage = () => {
 
       const { uniqueId: storyId } = await storyResponse.json();
       setUniqueId(storyId);
+      setStoryStatus('Story generation in progress...');
 
       // Generate pictures
       const pictureResponse = await fetch('/api/generatePictures', {
@@ -48,12 +53,14 @@ const IndexPage = () => {
       if (!pictureResponse.ok) {
         throw new Error('Failed to generate pictures');
       }
+      setImageStatus('Image generation in progress...');
 
-      setIsLoading(false);
     } catch (error) {
       console.error('Error generating content:', error);
       setError('Failed to generate content. Please try again.');
       setIsLoading(false);
+      setStoryStatus('');
+      setImageStatus('');
     }
   };
 
@@ -64,14 +71,11 @@ const IndexPage = () => {
           const storyResponse = await fetch(`/api/getStory?id=${uniqueId}`);
           const picturesResponse = await fetch(`/api/getPictures?id=${uniqueId}`);
 
-          let storyComplete = false;
-          let picturesComplete = false;
-
           if (storyResponse.ok) {
             const storyData = await storyResponse.json();
             if (storyData.story) {
               setGeneratedStory(storyData.story);
-              storyComplete = true;
+              setStoryStatus('Story generated successfully!');
             }
           }
 
@@ -79,15 +83,20 @@ const IndexPage = () => {
             const picturesData = await picturesResponse.json();
             if (picturesData.images && picturesData.images.length > 0) {
               setImages(picturesData.images);
-              picturesComplete = picturesData.images.length === storyParams.numPictures;
+              setImageStatus(`Generated ${picturesData.images.length} of ${storyParams.numPictures} images`);
+              if (picturesData.images.length === storyParams.numPictures) {
+                setImageStatus('All images generated successfully!');
+                setIsLoading(false);
+                clearInterval(interval);
+              }
             }
           }
 
-          if (storyComplete && picturesComplete) {
-            clearInterval(interval);
-          }
         } catch (error) {
           console.error('Error fetching content:', error);
+          setError('Error fetching content. Please try again.');
+          setIsLoading(false);
+          clearInterval(interval);
         }
       }, 5000);
 
@@ -131,55 +140,28 @@ const IndexPage = () => {
             onChange={(e) => setStoryParams({ ...storyParams, numPictures: parseInt(e.target.value) })}
           />
         </label>
-        <button onClick={generateContent} disabled={isLoading}>
-          {isLoading ? 'Generating...' : 'Generate Story and Images'}
-        </button>
-      </div>
-      
+         <button onClick={generateContent} disabled={isLoading}>
+        {isLoading ? 'Generating...' : 'Generate Story and Images'}
+      </button>
       {error && <p className={styles.error}>{error}</p>}
-      
+      {storyStatus && <p>{storyStatus}</p>}
+      {imageStatus && <p>{imageStatus}</p>}
       {generatedStory && (
-        <div className={styles.storyTable}>
+        <div className={styles.storyContainer}>
           <h2>Generated Story</h2>
-          <table className={styles.table}>
-            <tbody>
-              <tr>
-                <td className={styles.storyCell}>
-                  <p>{generatedStory}</p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <p>{generatedStory}</p>
         </div>
       )}
-      
       {images.length > 0 && (
-        <div className={styles.imageTable}>
-          <h2>Illustrations</h2>
-          <table className={styles.table}>
-            <tbody>
-              <tr>
-                {images.map((img, index) => (
-                  <td key={index} className={styles.imageCell}>
-                    <img 
-                      src={img} 
-                      alt={`Illustration ${index + 1}`} 
-                      className={styles.image}
-                      onError={(e) => {
-                        console.error(`Error loading image ${index}:`, e);
-                        e.target.onerror = null; // Prevent infinite loop
-                        e.target.src = '/placeholder.png';
-                      }}
-                    />
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
+        <div className={styles.imageContainer}>
+          <h2>Generated Images</h2>
+          {images.map((img, index) => (
+            <img key={index} src={img} alt={`Generated image ${index + 1}`} />
+          ))}
         </div>
       )}
     </div>
   );
 };
-
+       
 export default IndexPage;
