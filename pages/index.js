@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import styles from '../styles/index.module.css';
+import clientPromise from '../../lib/mongodb';
 
+export default async function handler(req, res) {
+  const client = await clientPromise;
+  const db = client.db("storybook");
+  // Use db for your operations
+}
 const fetchWithCacheBust = async (url) => {
   const cacheBuster = Date.now();
   const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}cache=${cacheBuster}`);
