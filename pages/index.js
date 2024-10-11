@@ -16,7 +16,7 @@ const IndexPage = () => {
   const [storyStatus, setStoryStatus] = useState('');
   const [imageStatus, setImageStatus] = useState('');
 
-  const generateContent = async () => {
+const generateContent = async () => {
     setIsLoading(true);
     setError('');
     setGeneratedStory('');
@@ -39,7 +39,7 @@ const IndexPage = () => {
       setUniqueId(uniqueId);
       setStoryStatus('Story generation in progress...');
 
-      pollStatus(uniqueId);
+      pollStoryStatus(uniqueId);
     } catch (error) {
       console.error('Error generating content:', error);
       setError('Failed to generate content. Please try again.');
@@ -49,32 +49,27 @@ const IndexPage = () => {
     }
   };
 
-  const pollStatus = async (uniqueId) => {
+  const pollStoryStatus = async (uniqueId) => {
     try {
-      const response = await fetch(`/api/checkStatus?id=${uniqueId}`);
+      const response = await fetch(`/api/checkStoryStatus?uniqueId=${uniqueId}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
 
-      if (data.storyComplete) {
+      if (data.status === 'complete') {
         setGeneratedStory(data.story);
         setStoryStatus('Story generated successfully!');
-      }
-
-      if (data.imagesComplete) {
-        setImages(data.images);
-        setImageStatus('All images generated successfully!');
-      }
-
-      if (data.storyComplete && data.imagesComplete) {
         setIsLoading(false);
+      } else if (data.status === 'error') {
+        throw new Error(data.error);
       } else {
-        setTimeout(() => pollStatus(uniqueId), 5000);
+        // Still pending, check again after 5 seconds
+        setTimeout(() => pollStoryStatus(uniqueId), 5000);
       }
     } catch (error) {
-      console.error('Error fetching content:', error);
-      setError('Error fetching content. Please try again.');
+      console.error('Error fetching story:', error);
+      setError('Error fetching story. Please try again.');
       setIsLoading(false);
     }
   };
