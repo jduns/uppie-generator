@@ -1,17 +1,16 @@
+// next.config.js
+
 module.exports = {
   reactStrictMode: true,
-  experimental: {
-    esmExternals: 'loose',
-  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        fs: false,
+        dns: false,
         net: false,
         tls: false,
       };
     }
     return config;
   },
-}
+};
