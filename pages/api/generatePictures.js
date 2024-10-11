@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     const { prompt, numPictures } = req.body;
     try {
       const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
-      const webhookUrl = `${process.env.VERCEL_URL || 'http://localhost:3000'}/api/webhook`;
+      const webhookUrl = `${process.env.VERCEL_URL || 'https://uppie-generator.vercel.app/'}/api/webhook`;
       const uniqueId = generateUniqueId();
 
       const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
