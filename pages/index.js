@@ -157,11 +157,12 @@ const IndexPage = () => {
           <h2>Generated Images</h2>
           {images.map((img, index) => (
             <img key={index} src={img} alt={`Generated image ${index + 1}`} />
-          ))}
-        </div>
-      )}
+         ))}
+          </div>
+        )}
+      </div>
     </div>
-  )
+  );
 };
-       
+
 export default IndexPage;
