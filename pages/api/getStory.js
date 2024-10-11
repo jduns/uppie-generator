@@ -8,9 +8,9 @@ export default async function handler(req, res) {
     const { id } = req.query;
     console.log(`Fetching story for ID: ${id}`);
     try {
-      const story = cache.get(`story:${id}`);
-      console.log(`Story found: ${story ? 'Yes' : 'No'}`);
-      res.status(200).json({ story });
+      const storyData = cache.get(`story:${id}`);
+      console.log('Story data:', storyData);
+      res.status(200).json(storyData || { status: 'pending' });
     } catch (error) {
       console.error('Error fetching story:', error);
       res.status(500).json({ error: 'Internal server error' });
