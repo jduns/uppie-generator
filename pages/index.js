@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import styles from '../styles/index.module.css';
 
+const fetchWithCacheBust = async (url) => {
+  const cacheBuster = Date.now();
+  const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}cache=${cacheBuster}`);
+  return response;
+};
+
 const IndexPage = () => {
   const [storyParams, setStoryParams] = useState({
     age: 5,
@@ -65,44 +71,40 @@ const IndexPage = () => {
   };
 
   useEffect(() => {
-    if (uniqueId) {
-      const interval = setInterval(async () => {
-        try {
-          const storyResponse = await fetch(`/api/getStory?id=${uniqueId}`);
-          const picturesResponse = await fetch(`/api/getPictures?id=${uniqueId}`);
-
-          if (storyResponse.ok) {
-            const storyData = await storyResponse.json();
-            if (storyData.story) {
-              setGeneratedStory(storyData.story);
-              setStoryStatus('Story generated successfully!');
-            }
-          }
-
-          if (picturesResponse.ok) {
-            const picturesData = await picturesResponse.json();
-            if (picturesData.images && picturesData.images.length > 0) {
-              setImages(picturesData.images);
-              setImageStatus(`Generated ${picturesData.images.length} of ${storyParams.numPictures} images`);
-              if (picturesData.images.length === storyParams.numPictures) {
-                setImageStatus('All images generated successfully!');
-                setIsLoading(false);
-                clearInterval(interval);
-              }
-            }
-          }
-
-        } catch (error) {
-          console.error('Error fetching content:', error);
-          setError('Error fetching content. Please try again.');
-          setIsLoading(false);
-          clearInterval(interval);
+  if (uniqueId) {
+    const checkStatus = async () => {
+      try {
+        const response = await fetchWithCacheBust(`/api/checkStatus?id=${uniqueId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      }, 5000);
-
-      return () => clearInterval(interval);
-    }
-  }, [uniqueId, storyParams.numPictures]);
+        const data = await response.json();
+        
+        if (data.storyComplete) {
+          setGeneratedStory(data.story);
+          setStoryStatus('Story generated successfully!');
+        }
+        
+        if (data.imagesComplete) {
+          setImages(data.images);
+          setImageStatus('All images generated successfully!');
+        }
+        
+        if (data.storyComplete && data.imagesComplete) {
+          setIsLoading(false);
+        } else {
+          setTimeout(checkStatus, 5000);
+        }
+      } catch (error) {
+        console.error('Error fetching content:', error);
+        setError('Error fetching content. Please try again.');
+        setIsLoading(false);
+      }
+    };
+    
+    checkStatus();
+  }
+}, [uniqueId]);
 
   return (
     <div className={styles.container}>
