@@ -5,8 +5,6 @@ module.exports = {
     MONGODB_URI: process.env.MONGODB_URI,
     AI_HORDE_API_KEY: process.env.AI_HORDE_API_KEY,
   },
-
-module.exports = {
   reactStrictMode: true,
   webpack: (config, { isServer }) => {
     if (!isServer) {
