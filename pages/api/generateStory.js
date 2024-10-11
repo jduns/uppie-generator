@@ -14,44 +14,20 @@ export default async function handler(req, res) {
 
       const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
       
-      // Start the generation process
-      const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': API_KEY
-        },
-        body: JSON.stringify({
-          prompt,
-          params: {
-            n: 1,
-            max_context_length: 1024,
-            max_length: 512,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Story generation started:', data);
-
-      // Store the generation ID in MongoDB
+      // Store the initial status in MongoDB
       await collection.insertOne({
         uniqueId,
-        storyStatus: 'pending',
-        imageStatus: 'pending',
-        storyGenerationId: data.id
+        storyStatus: 'initiating',
+        imageStatus: 'pending'
       });
 
-      // Start a background process to check the status
-      checkStoryStatus(data.id, uniqueId);
+      // Respond to the client immediately
+      res.status(202).json({ uniqueId, message: 'Story generation initiated' });
 
-      res.status(200).json({ uniqueId });
+      // Start the generation process in the background
+      generateStoryBackground(prompt, uniqueId, collection);
     } catch (error) {
-      console.error('Error generating story:', error);
+      console.error('Error initiating story generation:', error);
       res.status(500).json({ error: error.message });
     } finally {
       await client.close();
@@ -59,6 +35,48 @@ export default async function handler(req, res) {
   } else {
     res.setHeader('Allow', ['POST']);
     res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+  }
+}
+
+async function generateStoryBackground(prompt, uniqueId, collection) {
+  try {
+    const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': API_KEY
+      },
+      body: JSON.stringify({
+        prompt,
+        params: {
+          n: 1,
+          max_context_length: 1024,
+          max_length: 512,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Story generation started:', data);
+
+    // Update MongoDB with the generation ID
+    await collection.updateOne(
+      { uniqueId },
+      { $set: { storyStatus: 'pending', storyGenerationId: data.id } }
+    );
+
+    // Start checking the status
+    checkStoryStatus(data.id, uniqueId, collection);
+  } catch (error) {
+    console.error('Error in background story generation:', error);
+    await collection.updateOne(
+      { uniqueId },
+      { $set: { storyStatus: 'error', error: error.message } }
+    );
   }
 }
 
