@@ -1,46 +1,59 @@
 // pages/api/generatePictures.js
+import { AIHorde } from '@zeldafan0225/ai_horde';
+import NodeCache from 'node-cache';
 
-// Inline function to generate a unique ID
-function generateUniqueId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
+const cache = new NodeCache();
+const horde = new AIHorde({ apiKey: process.env.AI_HORDE_API_KEY });
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { prompt, numPictures } = req.body;
     try {
-      const apiKey = process.env.AI_HORDE_API_KEY || '0000000000';
-      const webhookUrl = 'https://uppie-generator.vercel.app/api/webhook';
-      const uniqueId = generateUniqueId();
-
-      const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
-        method: 'POST',
-        headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          params: {
-            n: numPictures,
-            width: 512,
-            height: 512,
-          },
-          webhook: `${webhookUrl}?type=image&id=${uniqueId}`,
-        }),
+      const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+      
+      // Start the generation process
+      const generation = await horde.postImageGenerationAsync({
+        prompt,
+        params: {
+          n: numPictures,
+          width: 512,
+          height: 512,
+        },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      console.log('Image generation started:', generation);
+      
+      // Store the generation ID in cache
+      cache.set(`images:${uniqueId}`, { status: 'pending', generationId: generation.id });
 
-      const data = await response.json();
-      console.log('Image generation initiated:', data);
+      // Start a background process to check the status
+      checkImageStatus(generation.id, uniqueId);
 
-      res.status(200).json({ taskId: data.id, uniqueId });
+      res.status(200).json({ uniqueId });
     } catch (error) {
-      console.error('Error generating pictures:', error);
+      console.error('Error generating images:', error);
       res.status(500).json({ error: error.message });
     }
   } else {
     res.setHeader('Allow', ['POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+}
+
+async function checkImageStatus(generationId, uniqueId) {
+  try {
+    const status = await horde.getImageGenerationStatus(generationId);
+    console.log('Image generation status:', status);
+
+    if (status.done) {
+      const images = status.generations.map(gen => gen.img);
+      cache.set(`images:${uniqueId}`, { status: 'complete', images });
+    } else {
+      // Check again after 5 seconds
+      setTimeout(() => checkImageStatus(generationId, uniqueId), 5000);
+    }
+  } catch (error) {
+    console.error('Error checking image status:', error);
+    cache.set(`images:${uniqueId}`, { status: 'error', error: error.message });
   }
 }
