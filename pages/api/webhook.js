@@ -11,12 +11,15 @@ export default async function handler(req, res) {
 
     try {
       if (type === 'text') {
-        cache.set(`story:${id}`, data.text);
-      } else if (type === 'image') {
-        const currentImages = cache.get(`images:${id}`) || [];
-        currentImages.push(data.img);
-        cache.set(`images:${id}`, currentImages);
-      }
+  cache.set(`story:${id}`, data.text);
+  cache.set(`generation:${id}`, 'complete');
+} else if (type === 'image') {
+  const currentImages = cache.get(`images:${id}`) || [];
+  currentImages.push(data.img);
+  cache.set(`images:${id}`, currentImages);
+  if (currentImages.length === expectedNumberOfImages) {
+    cache.set(`generation:${id}`, 'complete');
+  }
 
       res.status(200).json({ message: 'Webhook processed successfully' });
     } catch (error) {
