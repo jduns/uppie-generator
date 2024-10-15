@@ -13,6 +13,7 @@ export default async function handler(req, res) {
       const database = client.db('storybook');
       const collection = database.collection('generations');
       const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+      const prompt = `Illustrate scenes for a ${storyType} story featuring ${mainCharacter}, for a ${age}-year-old child.`;
       
       // Start the generation process
       const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
