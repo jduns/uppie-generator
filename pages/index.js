@@ -31,11 +31,12 @@ const IndexPage = () => {
     setImageStatus('Initiating image generation...');
 
     try {
+      // Initiate story generation
       const storyResponse = await fetch('/api/generateStory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt: `Write a ${storyParams.length} ${storyParams.storyType} story for a ${storyParams.age}-year-old child. The main character's name is ${storyParams.mainCharacter}.` 
+        body: JSON.stringify({
+          prompt: `Write a ${storyParams.length} ${storyParams.storyType} story for a ${storyParams.age}-year-old child. The main character's name is ${storyParams.mainCharacter}.`
         }),
       });
 
@@ -45,8 +46,29 @@ const IndexPage = () => {
 
       const { uniqueId } = await storyResponse.json();
       setUniqueId(uniqueId);
-      setStoryStatus('Story generation in progress...');
+
+      // Poll for story status
       pollStoryStatus(uniqueId);
+
+      // Initiate image generation
+      const imageResponse = await fetch('/api/generatePictures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Illustration for a ${storyParams.storyType} story for ${storyParams.age}-year-old children, featuring ${storyParams.mainCharacter}`,
+          numPictures: storyParams.numPictures
+        }),
+      });
+
+      if (!imageResponse.ok) {
+        throw new Error('Failed to initiate image generation');
+      }
+
+      const { taskId } = await imageResponse.json();
+
+      // Poll for image status
+      pollImageStatus(taskId);
+
     } catch (error) {
       console.error('Error generating content:', error);
       setError('Failed to generate content. Please try again.');
@@ -56,7 +78,53 @@ const IndexPage = () => {
     }
   };
 
-  // ... (pollStoryStatus, generateImages, and pollImageStatus functions remain the same)
+  const pollStoryStatus = async (id) => {
+    try {
+      const response = await fetch(`/api/checkStoryStatus?uniqueId=${id}`);
+      const data = await response.json();
+
+      if (data.status === 'complete') {
+        setGeneratedStory(data.story);
+        setStoryStatus('Story generation complete');
+        setIsLoading(false);
+      } else if (data.status === 'error') {
+        throw new Error(data.error);
+      } else {
+        // If still pending, poll again after 5 seconds
+        setTimeout(() => pollStoryStatus(id), 5000);
+      }
+    } catch (error) {
+      console.error('Error polling story status:', error);
+      setError('Failed to retrieve story. Please try again.');
+      setIsLoading(false);
+      setStoryStatus('');
+    }
+  };
+
+  const pollImageStatus = async (taskId) => {
+    try {
+      const response = await fetch('/api/checkPictureStatus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId }),
+      });
+      const data = await response.json();
+
+      if (data.done) {
+        setImages(data.images);
+        setImageStatus('Image generation complete');
+        setIsLoading(false);
+      } else {
+        // If not done, poll again after 5 seconds
+        setTimeout(() => pollImageStatus(taskId), 5000);
+      }
+    } catch (error) {
+      console.error('Error polling image status:', error);
+      setError('Failed to retrieve images. Please try again.');
+      setIsLoading(false);
+      setImageStatus('');
+    }
+  };
 
   return (
     <div className={styles.container}>
