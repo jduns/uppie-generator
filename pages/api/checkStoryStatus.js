@@ -1,27 +1,17 @@
 import { MongoClient } from 'mongodb';
-import NodeCache from 'node-cache';
 
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-const cache = new NodeCache();
+
+const API_KEY = process.env.AI_HORDE_API_KEY || '0000000000';
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { uniqueId } = req.query;
 
+    console.log(`Checking story status for ID: ${uniqueId}`);
+
     try {
-      // Check cache first
-      const cachedStatus = cache.get(`story:${uniqueId}`);
-
-      if (cachedStatus) {
-        if (cachedStatus.status === 'complete') {
-          return res.status(200).json({ status: 'complete', story: cachedStatus.story });
-        } else if (cachedStatus.status === 'error') {
-          return res.status(500).json({ status: 'error', error: cachedStatus.error });
-        }
-      }
-
-      // If not in cache, check MongoDB
       await client.connect();
       const database = client.db('storybook');
       const collection = database.collection('generations');
@@ -29,23 +19,47 @@ export default async function handler(req, res) {
       const generation = await collection.findOne({ uniqueId });
 
       if (!generation) {
+        console.log(`Generation not found for ID: ${uniqueId}`);
         return res.status(404).json({ error: 'Generation not found' });
       }
 
       if (generation.storyStatus === 'complete') {
-        cache.set(`story:${uniqueId}`, { status: 'complete', story: generation.story });
+        console.log(`Story generation complete for ID: ${uniqueId}`);
         return res.status(200).json({ status: 'complete', story: generation.story });
       }
 
       if (generation.storyStatus === 'error') {
-        cache.set(`story:${uniqueId}`, { status: 'error', error: generation.error });
+        console.log(`Error in story generation for ID: ${uniqueId}`);
         return res.status(500).json({ status: 'error', error: generation.error });
       }
 
-      // If still pending, return pending status
-      return res.status(202).json({ status: 'pending' });
+      // If still pending, check with AI Horde API
+      console.log(`Checking AI Horde API for ID: ${uniqueId}`);
+      const response = await fetch(`https://stablehorde.net/api/v2/generate/text/status/${generation.storyGenerationId}`, {
+        headers: { 'apikey': API_KEY }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.done) {
+        const story = data.generations[0].text;
+        await collection.updateOne(
+          { uniqueId },
+          { $set: { storyStatus: 'complete', story } }
+        );
+        console.log(`Story generation completed and saved for ID: ${uniqueId}`);
+        return res.status(200).json({ status: 'complete', story });
+      } else {
+        console.log(`Story generation still in progress for ID: ${uniqueId}`);
+        return res.status(202).json({ status: 'pending' });
+      }
+
     } catch (error) {
-      console.error('Error checking story status:', error);
+      console.error(`Error checking story status for ID: ${uniqueId}:`, error);
       res.status(500).json({ error: error.message });
     } finally {
       await client.close();
