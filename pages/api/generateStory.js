@@ -21,14 +21,10 @@ export default async function handler(req, res) {
       await collection.insertOne({
         uniqueId,
         storyStatus: 'initiating',
-        imageStatus: 'pending',
         prompt
       });
 
-      // Initiate the story generation process with a timeout
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
+      // Initiate the story generation process
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: {
@@ -42,11 +38,9 @@ export default async function handler(req, res) {
             max_context_length: 1024,
             max_length: 512,
           },
+          webhook: `${process.env.VERCEL_URL}/api/webhook?type=text&id=${uniqueId}`
         }),
-        signal: controller.signal
       });
-
-      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -67,8 +61,6 @@ export default async function handler(req, res) {
       // Respond to the client
       res.status(202).json({ uniqueId, message: 'Story generation initiated' });
 
-      // Start polling for story status
-      pollStoryStatus(uniqueId, data.id);
     } catch (error) {
       console.error('Error initiating story generation:', error);
       // Update MongoDB with the error status
@@ -86,59 +78,4 @@ export default async function handler(req, res) {
     res.setHeader('Allow', ['POST']);
     res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
-}
-
-async function pollStoryStatus(uniqueId, generationId) {
-  let retries = 0;
-  const maxRetries = 10;
-
-  const poll = async () => {
-    try {
-      const response = await fetch(`https://stablehorde.net/api/v2/generate/text/status/${generationId}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.done) {
-        const story = data.generations[0].text;
-        
-        // Update cache
-        cache.set(`story:${uniqueId}`, { status: 'complete', story });
-
-        // Update MongoDB
-        const client = await MongoClient.connect(uri);
-        const database = client.db('storybook');
-        const collection = database.collection('generations');
-        await collection.updateOne(
-          { uniqueId },
-          { $set: { storyStatus: 'complete', story } }
-        );
-        await client.close();
-      } else if (retries < maxRetries) {
-        // Check again after 5 seconds
-        retries++;
-        setTimeout(poll, 5000);
-      } else {
-        throw new Error('Max retries reached. Story generation timed out.');
-      }
-    } catch (error) {
-      console.error('Error polling story status:', error);
-      cache.set(`story:${uniqueId}`, { status: 'error', error: error.message });
-      
-      // Update MongoDB with the error status
-      const client = await MongoClient.connect(uri);
-      const database = client.db('storybook');
-      const collection = database.collection('generations');
-      await collection.updateOne(
-        { uniqueId },
-        { $set: { storyStatus: 'error', error: error.message } }
-      );
-      await client.close();
-    }
-  };
-
-  poll();
 }
