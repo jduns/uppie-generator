@@ -13,7 +13,7 @@ export default async function handler(req, res) {
       const database = client.db('storybook');
       const collection = database.collection('generations');
       const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
-      const prompt = `Write a ${length} ${storyType} story for a ${age}-year-old child. The story should have ${numPictures} key scenes that could be illustrated.`;
+      const prompt = `Write a ${length} ${storyType} story for a ${age}-year-old child. The main character's name is ${mainCharacter}. The story should have ${numPictures} key scenes that could be illustrated.`;
       await collection.insertOne({ uniqueId, storyStatus: 'initiating', prompt });
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
