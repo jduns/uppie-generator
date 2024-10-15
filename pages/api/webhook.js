@@ -1,3 +1,4 @@
+// pages/api/webhook.js
 import NodeCache from 'node-cache';
 import { MongoClient } from 'mongodb';
 
@@ -9,8 +10,6 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { type, id } = req.query;
     const data = req.body;
-    console.log(`Received webhook for ${type}, ID: ${id}`);
-    console.log('Webhook data:', data);
 
     try {
       await client.connect();
