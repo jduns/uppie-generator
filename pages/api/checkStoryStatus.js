@@ -13,24 +13,27 @@ export default async function handler(req, res) {
       const database = client.db('storybook');
       const collection = database.collection('generations');
       const generation = await collection.findOne({ uniqueId });
+
       if (!generation) {
         return res.status(404).json({ error: 'Generation not found' });
       }
+
       if (generation.storyStatus === 'complete') {
         return res.status(200).json({ status: 'complete', story: generation.story });
       }
-      if (generation.storyStatus === 'error') {
-        return res.status(500).json({ status: 'error', error: generation.error });
-      }
+
       const response = await fetch(`https://stablehorde.net/api/v2/generate/text/status/${generation.storyGenerationId}`, {
         headers: { 'apikey': API_KEY }
       });
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
       const data = await response.json();
+
       if (data.done) {
-        const story = data.generations.text;
+        const story = data.generations[0].text;
         await collection.updateOne({ uniqueId }, { $set: { storyStatus: 'complete', story } });
         return res.status(200).json({ status: 'complete', story });
       } else {
