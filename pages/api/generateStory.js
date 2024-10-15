@@ -1,9 +1,7 @@
 import { MongoClient } from 'mongodb';
-import NodeCache from 'node-cache';
 
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-const cache = new NodeCache();
 
 const API_KEY = process.env.AI_HORDE_API_KEY || '0000000000';
 
@@ -11,6 +9,8 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { prompt } = req.body;
     const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+    console.log(`Initiating story generation for ID: ${uniqueId}`);
 
     try {
       await client.connect();
@@ -23,6 +23,8 @@ export default async function handler(req, res) {
         storyStatus: 'initiating',
         prompt
       });
+
+      console.log(`Sending request to AI Horde API for ID: ${uniqueId}`);
 
       // Initiate the story generation process
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
@@ -37,8 +39,7 @@ export default async function handler(req, res) {
             n: 1,
             max_context_length: 1024,
             max_length: 512,
-          },
-          webhook: `${process.env.VERCEL_URL}/api/webhook?type=text&id=${uniqueId}`
+          }
         }),
       });
 
@@ -47,7 +48,7 @@ export default async function handler(req, res) {
       }
 
       const data = await response.json();
-      console.log('Story generation started:', data);
+      console.log(`Story generation started for ID: ${uniqueId}`, data);
 
       // Update MongoDB with the generation ID
       await collection.updateOne(
@@ -55,21 +56,16 @@ export default async function handler(req, res) {
         { $set: { storyStatus: 'pending', storyGenerationId: data.id } }
       );
 
-      // Store the generation ID in the cache
-      cache.set(`story:${uniqueId}`, { status: 'pending', generationId: data.id });
-
       // Respond to the client
       res.status(202).json({ uniqueId, message: 'Story generation initiated' });
 
     } catch (error) {
-      console.error('Error initiating story generation:', error);
+      console.error(`Error initiating story generation for ID: ${uniqueId}:`, error);
       // Update MongoDB with the error status
       await collection.updateOne(
         { uniqueId },
         { $set: { storyStatus: 'error', error: error.message } }
       );
-      // Update cache with the error status
-      cache.set(`story:${uniqueId}`, { status: 'error', error: error.message });
       res.status(500).json({ error: error.message });
     } finally {
       await client.close();
