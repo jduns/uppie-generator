@@ -25,7 +25,10 @@ export default async function handler(req, res) {
         prompt
       });
 
-      // Initiate the story generation process
+      // Initiate the story generation process with a timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
         method: 'POST',
         headers: {
@@ -40,7 +43,10 @@ export default async function handler(req, res) {
             max_length: 512,
           },
         }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -65,6 +71,13 @@ export default async function handler(req, res) {
       pollStoryStatus(uniqueId, data.id);
     } catch (error) {
       console.error('Error initiating story generation:', error);
+      // Update MongoDB with the error status
+      await collection.updateOne(
+        { uniqueId },
+        { $set: { storyStatus: 'error', error: error.message } }
+      );
+      // Update cache with the error status
+      cache.set(`story:${uniqueId}`, { status: 'error', error: error.message });
       res.status(500).json({ error: error.message });
     } finally {
       await client.close();
@@ -76,36 +89,56 @@ export default async function handler(req, res) {
 }
 
 async function pollStoryStatus(uniqueId, generationId) {
-  try {
-    const response = await fetch(`https://stablehorde.net/api/v2/generate/text/status/${generationId}`);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+  let retries = 0;
+  const maxRetries = 10;
 
-    const data = await response.json();
-
-    if (data.done) {
-      const story = data.generations[0].text;
+  const poll = async () => {
+    try {
+      const response = await fetch(`https://stablehorde.net/api/v2/generate/text/status/${generationId}`);
       
-      // Update cache
-      cache.set(`story:${uniqueId}`, { status: 'complete', story });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      // Update MongoDB
+      const data = await response.json();
+
+      if (data.done) {
+        const story = data.generations[0].text;
+        
+        // Update cache
+        cache.set(`story:${uniqueId}`, { status: 'complete', story });
+
+        // Update MongoDB
+        const client = await MongoClient.connect(uri);
+        const database = client.db('storybook');
+        const collection = database.collection('generations');
+        await collection.updateOne(
+          { uniqueId },
+          { $set: { storyStatus: 'complete', story } }
+        );
+        await client.close();
+      } else if (retries < maxRetries) {
+        // Check again after 5 seconds
+        retries++;
+        setTimeout(poll, 5000);
+      } else {
+        throw new Error('Max retries reached. Story generation timed out.');
+      }
+    } catch (error) {
+      console.error('Error polling story status:', error);
+      cache.set(`story:${uniqueId}`, { status: 'error', error: error.message });
+      
+      // Update MongoDB with the error status
       const client = await MongoClient.connect(uri);
       const database = client.db('storybook');
       const collection = database.collection('generations');
       await collection.updateOne(
         { uniqueId },
-        { $set: { storyStatus: 'complete', story } }
+        { $set: { storyStatus: 'error', error: error.message } }
       );
       await client.close();
-    } else {
-      // Check again after 5 seconds
-      setTimeout(() => pollStoryStatus(uniqueId, generationId), 5000);
     }
-  } catch (error) {
-    console.error('Error polling story status:', error);
-    cache.set(`story:${uniqueId}`, { status: 'error', error: error.message });
-  }
+  };
+
+  poll();
 }
