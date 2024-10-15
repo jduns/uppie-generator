@@ -1,3 +1,4 @@
+// pages/api/generatePictures.js
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
@@ -11,7 +12,6 @@ export default async function handler(req, res) {
       await client.connect();
       const database = client.db('storybook');
       const collection = database.collection('generations');
-
       const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
       
       // Start the generation process
@@ -30,14 +30,11 @@ export default async function handler(req, res) {
           },
         }),
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       console.log('Image generation started:', data);
-
       // Store the generation ID in MongoDB
       await collection.insertOne({
         uniqueId,
@@ -45,10 +42,8 @@ export default async function handler(req, res) {
         imageGenerationId: data.id,
         numPictures
       });
-
       // Start a background process to check the status
       checkImageStatus(data.id, uniqueId);
-
       res.status(200).json({ uniqueId });
     } catch (error) {
       console.error('Error generating images:', error);
@@ -67,15 +62,12 @@ async function checkImageStatus(generationId, uniqueId) {
     await client.connect();
     const database = client.db('storybook');
     const collection = database.collection('generations');
-
     const response = await fetch(`https://stablehorde.net/api/v2/generate/status/${generationId}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-
     const status = await response.json();
     console.log('Image generation status:', status);
-
     if (status.done) {
       const images = status.generations.map(gen => gen.img);
       await collection.updateOne(
