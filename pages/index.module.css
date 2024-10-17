@@ -18,7 +18,7 @@
   margin-bottom: 1rem;
 }
 
-.form input {
+.form input, .form select {
   width: 100%;
   padding: 0.5rem;
   margin-top: 0.25rem;
@@ -27,9 +27,14 @@
   font-size: 1rem;
 }
 
-.form button {
-  display: block;
-  width: 100%;
+.buttonContainer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.buttonContainer button {
+  flex: 1;
   padding: 0.75rem;
   background-color: #0070f3;
   color: white;
@@ -40,11 +45,15 @@
   transition: background-color 0.3s ease;
 }
 
-.form button:hover {
+.buttonContainer button:first-child {
+  margin-right: 1rem;
+}
+
+.buttonContainer button:hover {
   background-color: #0051a2;
 }
 
-.form button:disabled {
+.buttonContainer button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
 }
@@ -54,8 +63,7 @@
   margin-bottom: 1rem;
 }
 
-.storyTable,
-.imageTable {
+.storyContainer, .imageContainer {
   margin-top: 2rem;
   background-color: #fff;
   padding: 2rem;
@@ -63,18 +71,8 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.storyCell,
-.imageCell {
-  padding: 1rem;
-  border: 1px solid #ddd;
-}
-
-.image {
+.imageContainer img {
   max-width: 100%;
   height: auto;
+  margin-bottom: 1rem;
 }
