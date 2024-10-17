@@ -1,22 +1,57 @@
-// pages/api/getStory.js
-import NodeCache from 'node-cache';
+import { MongoClient } from 'mongodb';
+import { generateUniqueId } from '../utils';
 
-const cache = new NodeCache();
+const uri = process.env.MONGODB_URI;
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+const API_KEY = process.env.AI_HORDE_API_KEY || '0000000000';
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    const { id } = req.query;
-    console.log(`Fetching story for ID: ${id}`);
+  if (req.method === 'POST') {
+    const { length, storyType, age, numPictures, mainCharacter } = req.body;
+    const webhookUrl = `${process.env.VERCEL_URL || 'http://localhost:3000'}/api/webhook?type=text`;
+
     try {
-      const storyData = cache.get(`story:${id}`);
-      console.log('Story data:', storyData);
-      res.status(200).json(storyData || { status: 'pending' });
+      await client.connect();
+      const database = client.db('storybook');
+      const collection = database.collection('generations');
+
+      const uniqueId = generateUniqueId();
+      const prompt = `Write a ${length} ${storyType} story for a ${age}-year-old child. The main character's name is ${mainCharacter}. The story should have ${numPictures} key scenes that could be illustrated.`;
+
+      await collection.insertOne({ uniqueId, storyStatus: 'initiating', prompt });
+
+      const response = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
+        method: 'POST',
+        headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt, 
+          params: {
+            max_length: length === 'short' ? 500 : length === 'medium' ? 1000 : 1500,
+            max_context_length: 2048,
+            temperature: 0.7,
+          },
+          webhook: `${webhookUrl}&id=${uniqueId}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      await collection.updateOne({ uniqueId }, { $set: { storyStatus: 'pending', storyGenerationId: data.id } });
+
+      res.status(200).json({ uniqueId });
     } catch (error) {
-      console.error('Error fetching story:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error('Error generating story:', error);
+      res.status(500).json({ error: error.message || 'Error generating story. Please try again later.' });
+    } finally {
+      await client.close();
     }
   } else {
-    res.setHeader('Allow', ['GET']);
+    res.setHeader('Allow', ['POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
