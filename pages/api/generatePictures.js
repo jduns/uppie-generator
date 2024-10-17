@@ -1,5 +1,5 @@
 import { MongoClient } from 'mongodb';
-import { generateUniqueId } from '../utils';
+import { generateUniqueId } from '/utils';
 
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
