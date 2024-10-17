@@ -16,6 +16,7 @@ const IndexPage = () => {
   const [error, setError] = useState('');
   const [uniqueId, setUniqueId] = useState('');
   const [storyStatus, setStoryStatus] = useState('');
+  const [imageStatus, setImageStatus] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -77,6 +78,7 @@ const IndexPage = () => {
     setIsGeneratingImages(true);
     setError('');
     setImages([]);
+    setImageStatus('Initiating image generation...');
 
     try {
       const response = await fetch('/api/generatePictures', {
@@ -95,6 +97,7 @@ const IndexPage = () => {
       console.error('Error generating images:', error);
       setError('Failed to generate images. Please try again.');
       setIsGeneratingImages(false);
+      setImageStatus('');
     }
   };
 
@@ -110,13 +113,16 @@ const IndexPage = () => {
       if (data.done) {
         setImages(data.images);
         setIsGeneratingImages(false);
+        setImageStatus('Image generation complete');
       } else {
+        setImageStatus(`Image generation in progress... ${data.message || ''}`);
         setTimeout(() => pollImageStatus(id), 5000);
       }
     } catch (error) {
       console.error('Error polling image status:', error);
       setError('Failed to retrieve images. Please try again.');
       setIsGeneratingImages(false);
+      setImageStatus('');
     }
   };
 
@@ -168,15 +174,18 @@ const IndexPage = () => {
             onChange={handleInputChange}
           />
         </label>
-        <button onClick={generateStory} disabled={isGeneratingStory}>
-          {isGeneratingStory ? 'Generating Story...' : 'Generate Story'}
-        </button>
-        <button onClick={generateImages} disabled={isGeneratingImages}>
-          {isGeneratingImages ? 'Generating Images...' : 'Generate Images'}
-        </button>
+      <div className={styles.buttonContainer}>
+          <button onClick={generateStory} disabled={isGeneratingStory || isGeneratingImages}>
+            {isGeneratingStory ? 'Generating Story...' : 'Generate Story'}
+          </button>
+          <button onClick={generateImages} disabled={isGeneratingStory || isGeneratingImages}>
+            {isGeneratingImages ? 'Generating Images...' : 'Generate Images'}
+          </button>
+        </div>
       </div>
       {error && <p className={styles.error}>{error}</p>}
       {storyStatus && <p>{storyStatus}</p>}
+      {imageStatus && <p>{imageStatus}</p>}
       {generatedStory && (
         <div className={styles.storyContainer}>
           <h2>Generated Story</h2>
